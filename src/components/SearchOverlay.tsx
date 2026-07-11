@@ -1,0 +1,230 @@
+"use client";
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+
+export function SearchOverlay() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [query]);
+
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`)
+      .then(res => res.json())
+      .then(data => {
+        const validResults = data.results?.filter((r: any) => r.media_type !== 'person' && (r.poster_path || r.backdrop_path)) || [];
+        setResults(validResults.slice(0, 8));
+      })
+      .catch(console.error)
+      .finally(() => setIsSearching(false));
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Focus mobile input when overlay opens
+  useEffect(() => {
+    if (mobileOpen && mobileInputRef.current) {
+      setTimeout(() => mobileInputRef.current?.focus(), 100);
+    }
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const handleOpenSearch = () => setMobileOpen(true);
+    window.addEventListener('open-mobile-search', handleOpenSearch);
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowDropdown(false);
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('open-mobile-search', handleOpenSearch);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Lock body scroll when mobile overlay is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  const handleSelect = (movie: any) => {
+    setShowDropdown(false);
+    setMobileOpen(false);
+    setQuery('');
+    router.push(`/?${movie.media_type === 'tv' ? 'tvId' : 'movieId'}=${movie.id}`);
+  };
+
+  const ResultsList = () => (
+    <>
+      {results.length === 0 && !isSearching && query.length > 0 ? (
+        <div className="px-4 py-6 text-center text-zinc-500 text-sm">No results found for &ldquo;{query}&rdquo;</div>
+      ) : (
+        results.map((result) => (
+          <div 
+            key={result.id}
+            onClick={() => handleSelect(result)}
+            className="px-4 py-3 flex items-center gap-3 hover:bg-white/10 active:bg-white/15 cursor-pointer transition-colors touch-manipulation"
+          >
+            <img 
+              src={result.poster_path || result.backdrop_path ? `https://image.tmdb.org/t/p/w92${result.poster_path || result.backdrop_path}` : 'https://via.placeholder.com/92x138?text=No+Image'} 
+              alt={result.title || result.name} 
+              className="w-11 h-16 object-cover rounded-lg shadow-md shrink-0 bg-zinc-800"
+            />
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-white text-sm font-semibold truncate">{result.title || result.name}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">{result.media_type === 'tv' ? 'TV Series' : 'Movie'}</span>
+                <span className="text-[10px] text-zinc-500">•</span>
+                <span className="text-[10px] text-zinc-400">
+                  {result.release_date ? result.release_date.split('-')[0] : (result.first_air_date ? result.first_air_date.split('-')[0] : '')}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile: Fullscreen search overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden fixed inset-0 z-[80] bg-zinc-950/98 backdrop-blur-xl flex flex-col overscroll-none safe-top"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+              <button
+                onClick={() => { setMobileOpen(false); setQuery(''); }}
+                className="w-10 h-10 flex items-center justify-center rounded-full text-zinc-400 active:bg-white/10 transition-colors touch-manipulation shrink-0"
+              >
+                <span className="material-symbols-outlined">arrow_back</span>
+              </button>
+              <div className="flex-1 relative">
+                <input
+                  ref={mobileInputRef}
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white text-base outline-none placeholder-zinc-500 focus:border-yellow-400/50 transition-colors"
+                  placeholder="Search movies, TV shows..."
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-white/20 border-t-tertiary rounded-full animate-spin"></div>
+                )}
+              </div>
+            </div>
+            <div 
+              className="flex-1 overflow-y-auto overscroll-none"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setMobileOpen(false);
+                }
+              }}
+            >
+              <ResultsList />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop: Inline search bar */}
+      <div ref={containerRef} className="hidden md:flex absolute top-6 right-8 z-50 flex-col items-end">
+        <div className="glass-panel rounded-full px-4 py-2 flex items-center gap-2 border border-white/10 hover:border-tertiary/50 transition-colors focus-within:border-tertiary focus-within:shadow-[0_0_15px_rgba(47,230,255,0.2)] w-80 relative bg-background/80 backdrop-blur-xl">
+          <span className="material-symbols-outlined text-zinc-400">search</span>
+          <input
+            className="bg-transparent border-none focus:ring-0 text-white font-body-md text-body-md w-full placeholder-zinc-500 outline-none"
+            placeholder="Search movies, TV shows..."
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+          />
+          {isSearching && (
+            <div className="w-4 h-4 border-2 border-white/20 border-t-tertiary rounded-full animate-spin absolute right-[88px]"></div>
+          )}
+          <div className="flex items-center gap-3 pl-3 ml-2 border-l border-white/10 shrink-0">
+            <span className="material-symbols-outlined text-zinc-400 hover:text-white cursor-pointer transition-colors">notifications</span>
+            <Link href="/profile" className="shrink-0 flex items-center justify-center">
+              {session?.user?.image ? (
+                <img
+                  alt="User Profile Avatar"
+                  className="w-9 h-9 rounded-full border-2 border-white/20 cursor-pointer hover:border-white/50 transition-colors object-cover shrink-0"
+                  src={session.user.image}
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-zinc-800 border-2 border-white/20 flex items-center justify-center hover:border-white/50 transition-colors shrink-0">
+                  <span className="material-symbols-outlined text-zinc-400 text-[18px]">person</span>
+                </div>
+              )}
+            </Link>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {showDropdown && query.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute top-full mt-3 w-80 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2"
+            >
+              <ResultsList />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+}
