@@ -72,6 +72,7 @@ export function ProfileTvShowsSection({ initialTvShows }: ProfileTvShowsSectionP
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tvShows.length]);
 
   const fetchTvShows = async () => {

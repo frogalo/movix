@@ -76,6 +76,7 @@ export function LibraryClient({
     };
     window.addEventListener("scroll", handleWindowScroll);
     return () => window.removeEventListener("scroll", handleWindowScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMoreShows, isLoadingMoreShows, showsPage]);
 
   const loadMoreShows = async () => {

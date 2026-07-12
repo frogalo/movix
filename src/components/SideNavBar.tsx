@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 export function SideNavBar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   const isActive = (path: string) =>
     path === "/" ? pathname === path : pathname.startsWith(path);

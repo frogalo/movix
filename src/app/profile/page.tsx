@@ -126,8 +126,6 @@ export default async function Profile() {
     `${minutes}MIN`,
   ].filter(Boolean).join(' ');
 
-  const connectedProviders = user.accounts.map((account) => account.provider);
-  const hasPasswordLogin = Boolean(user.passwordHash);
   const joinedDate = new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
