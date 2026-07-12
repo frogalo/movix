@@ -1,21 +1,11 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: movix-postgres
+  movix:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: movix-app
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: movix_auth
-      POSTGRES_USER: movix
-      POSTGRES_PASSWORD: movix
+    env_file:
+      - .env.production
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U movix -d movix_auth"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
+      - "3000:3000"
