@@ -350,11 +350,11 @@ export function TvShowModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 24 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="glass-panel relative z-10 flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+            className="glass-panel relative z-10 flex h-[100dvh] w-full max-w-6xl flex-col overflow-y-auto md:overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
           >
             <button
               onClick={onClose}
-              className="absolute right-4 z-25 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              className="fixed md:absolute right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
               style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
             >
               <span className="material-symbols-outlined">close</span>
@@ -362,12 +362,7 @@ export function TvShowModal({
 
             {/* Poster / Backdrop column */}
             <div 
-              className="relative w-full shrink-0 overflow-hidden md:h-auto md:w-[40%] transition-all duration-75"
-              style={{
-                height: typeof window !== 'undefined' && window.innerWidth < 768
-                  ? `${Math.max(150, 300 - scrollTop)}px`
-                  : undefined
-              }}
+              className="relative w-full shrink-0 overflow-hidden h-[300px] md:h-auto md:w-[40%]"
             >
               {heroImage ? (
                  <ImageWithLoader
@@ -404,7 +399,7 @@ export function TvShowModal({
             </div>
 
             {/* Content & Episodes column */}
-            <div className="flex flex-1 flex-col overflow-hidden bg-background p-4 md:p-8">
+            <div className="flex flex-1 flex-col overflow-visible bg-background p-4 md:p-8">
               {/* Top Section wrapper for mobile auto-hide */}
               <div className={`transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mb-6 md:pointer-events-auto overflow-hidden shrink-0 ${
                 hideTop 
@@ -513,8 +508,7 @@ export function TvShowModal({
 
               {/* Episodes List */}
               <div 
-                onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-                className="flex-1 overflow-y-auto pr-1 pb-24 md:pb-0 space-y-3 md:space-y-4 hide-scrollbar overscroll-none"
+                className="flex-1 overflow-y-visible md:overflow-y-auto pr-1 pb-24 md:pb-0 space-y-3 md:space-y-4 hide-scrollbar overscroll-none"
               >
                 {isLoading ? (
                   <div className="flex h-32 items-center justify-center">

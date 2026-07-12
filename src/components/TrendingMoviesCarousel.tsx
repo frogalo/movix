@@ -95,7 +95,7 @@ export function TrendingMoviesCarousel({
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
               }`}
             >
-              TV
+              S
             </button>
           </div>
         </div>
@@ -199,7 +199,7 @@ export function TrendingMoviesCarousel({
                         ? "bg-purple-600/90 border-purple-400/30 text-white" 
                         : "bg-yellow-500/90 border-yellow-400/30 text-black"
                     }`}>
-                      {isTv ? 'TV' : 'M'}
+                      {isTv ? 'S' : 'M'}
                     </div>
                   </div>
 

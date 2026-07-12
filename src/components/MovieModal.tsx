@@ -179,11 +179,11 @@ export function MovieModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 24 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="glass-panel relative z-10 flex h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+            className="glass-panel relative z-10 flex h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-y-auto md:overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
           >
             <button
               onClick={onClose}
-              className="absolute right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              className="fixed md:absolute right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
               style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
             >
               <span className="material-symbols-outlined">close</span>
@@ -207,12 +207,7 @@ export function MovieModal({
             )}
 
             <div 
-              className="relative w-full shrink-0 overflow-hidden md:h-auto md:w-[44%] transition-all duration-75"
-              style={{
-                height: typeof window !== 'undefined' && window.innerWidth < 768
-                  ? `${Math.max(150, 300 - scrollTop)}px`
-                  : undefined
-              }}
+              className="relative w-full shrink-0 overflow-hidden h-[300px] md:h-auto md:w-[44%]"
             >
               {heroImage ? (
                  <ImageWithLoader
@@ -248,8 +243,7 @@ export function MovieModal({
             </div>
 
             <div 
-              onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-              className="flex-1 overflow-y-auto p-5 pb-24 md:p-10 md:pb-10 md:pt-10 overscroll-none"
+              className="flex-1 overflow-y-visible md:overflow-y-auto p-5 pb-24 md:p-10 md:pb-10 md:pt-10 overscroll-none"
             >
               <header className="hidden space-y-3 md:block">
                 <div className="flex flex-wrap items-center gap-3">

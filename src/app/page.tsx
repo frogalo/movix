@@ -58,13 +58,13 @@ function HomeContent() {
   };
 
   const filteredMovies = movies.filter(movie => {
-    const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
+    const isTv = movie.media_type === 'S' || (!movie.title && !!movie.name);
     return isTv ? showTv : showMovies;
   });
 
   useEffect(() => {
     if (filteredMovies.length > 0) {
-      const currentIsTv = selectedMovie?.media_type === 'tv' || (!selectedMovie?.title && !!selectedMovie?.name);
+      const currentIsTv = selectedMovie?.media_type === 'S' || (!selectedMovie?.title && !!selectedMovie?.name);
       const currentMatchesFilter = selectedMovie && (currentIsTv ? showTv : showMovies);
       if (!currentMatchesFilter) {
         setSelectedMovie(filteredMovies[0]);
@@ -173,7 +173,7 @@ function HomeContent() {
   };
 
   const handleMovieSelect = (movie: any) => {
-    if (movie.media_type === 'tv') {
+    if (movie.media_type === 'S') {
       setSelectedTvShow(movie);
       setIsTvModalOpen(true);
     } else {
