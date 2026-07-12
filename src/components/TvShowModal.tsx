@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { ImageWithLoader } from "./ImageWithLoader";
+import { TrailerPlayer } from "./TrailerPlayer";
 
 interface TvShowModalProps {
   showId: string | number | null;
@@ -90,12 +93,15 @@ export function TvShowModal({
   onClose,
   onLibraryUpdate,
 }: TvShowModalProps) {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   const [data, setData] = useState<TvShowData | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number | 'auto'>('auto');
   const [isLoading, setIsLoading] = useState(false);
   const [isActionInProgress, setIsActionInProgress] = useState<string | null>(null);
   const [isWatchlistAction, setIsWatchlistAction] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   // Fetch show details & default/selected season episodes
   useEffect(() => {
@@ -117,6 +123,7 @@ export function TvShowModal({
     } else {
       setData(null);
       setSelectedSeason('auto');
+      setShowTrailer(false);
     }
   }, [showId, isOpen, selectedSeason]);
 
@@ -323,10 +330,13 @@ export function TvShowModal({
     }
   };
 
+  const hideTop = scrollTop > 10;
+
   return (
+    <>
     <AnimatePresence>
-      {isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-8 overscroll-none">
+      {isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-8 overscroll-none">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -340,11 +350,12 @@ export function TvShowModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 24 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="glass-panel relative z-10 flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+            className="glass-panel relative z-10 flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
           >
             <button
               onClick={onClose}
-              className="absolute right-4 top-20 md:top-4 z-25 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              className="absolute right-4 z-25 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -359,11 +370,12 @@ export function TvShowModal({
               }}
             >
               {heroImage ? (
-                <img
-                  src={heroImage}
-                  alt={details.name}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+                 <ImageWithLoader
+                   src={heroImage}
+                   alt={details.name}
+                   className="absolute inset-0 h-full w-full object-cover"
+                   loaderSize={60}
+                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                   <span className="material-symbols-outlined text-7xl text-zinc-700">tv</span>
@@ -393,65 +405,85 @@ export function TvShowModal({
 
             {/* Content & Episodes column */}
             <div className="flex flex-1 flex-col overflow-hidden bg-background p-4 md:p-8">
-              {/* Show Stats & Action Buttons */}
-              <div className="mb-4 md:mb-6 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between border-b border-white/5 pb-4 md:pb-5">
-                <div className="flex items-center gap-4 md:gap-6 overflow-x-auto hide-scrollbar">
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-zinc-500">First Aired</p>
-                    <p className="text-sm font-semibold text-white">
-                      {details.first_air_date ? new Date(details.first_air_date).getFullYear() : "N/A"}
-                    </p>
+              {/* Top Section wrapper for mobile auto-hide */}
+              <div className={`transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mb-6 md:pointer-events-auto overflow-hidden shrink-0 ${
+                hideTop 
+                  ? 'max-h-0 opacity-0 mb-0 pointer-events-none' 
+                  : 'max-h-[300px] opacity-100 mb-4 pointer-events-auto'
+              }`}>
+                {/* Show Stats & Action Buttons */}
+                <div className="mb-4 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between border-b border-white/5 pb-4 md:pb-5">
+                  <div className="flex items-center gap-4 md:gap-6 overflow-x-auto hide-scrollbar">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">First Aired</p>
+                      <p className="text-sm font-semibold text-white">
+                        {details.first_air_date ? new Date(details.first_air_date).getFullYear() : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">Seasons / Episodes</p>
+                      <p className="text-sm font-semibold text-white">
+                        {details.number_of_seasons}s / {details.number_of_episodes} eps
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">Rating</p>
+                      <p className="flex items-center gap-1 text-sm font-semibold text-white">
+                        <span className="material-symbols-outlined text-xs text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        {details.vote_average ? details.vote_average.toFixed(1) : "NR"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-zinc-500">Seasons / Episodes</p>
-                    <p className="text-sm font-semibold text-white">
-                      {details.number_of_seasons}s / {details.number_of_episodes} eps
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-zinc-500">Rating</p>
-                    <p className="flex items-center gap-1 text-sm font-semibold text-white">
-                      <span className="material-symbols-outlined text-xs text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      {details.vote_average ? details.vote_average.toFixed(1) : "NR"}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 md:gap-3">
-                  <button
-                    onClick={handleLibraryToggle}
-                    disabled={isWatchlistAction}
-                    className={`flex items-center gap-1.5 md:gap-2 rounded-xl border px-3 md:px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors touch-manipulation ${
-                      isInLibrary
-                        ? "bg-zinc-800 border-white/10 text-white hover:bg-zinc-700"
-                        : "bg-yellow-400 border-transparent text-black hover:bg-yellow-300"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">
-                      {isInLibrary ? "bookmark_remove" : "bookmark"}
-                    </span>
-                    {isInLibrary ? "Untrack" : "Track Show"}
-                  </button>
+                  {isLoggedIn && (
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <button
+                        onClick={handleLibraryToggle}
+                        disabled={isWatchlistAction}
+                        className={`flex items-center gap-1.5 md:gap-2 rounded-xl border px-3 md:px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors touch-manipulation ${
+                          isInLibrary
+                            ? "bg-zinc-800 border-white/10 text-white hover:bg-zinc-700"
+                            : "bg-yellow-400 border-transparent text-black hover:bg-yellow-300"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          {isInLibrary ? "bookmark_remove" : "bookmark"}
+                        </span>
+                        {isInLibrary ? "Untrack" : "Track Show"}
+                      </button>
 
-                  {isInLibrary && (
-                    <button
-                      onClick={handleFavoriteToggle}
-                      disabled={isWatchlistAction}
-                      className={`flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-colors hover:bg-white/10 ${
-                        isFavorite ? "text-yellow-400" : "text-zinc-400"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]" style={isFavorite ? { fontVariationSettings: "'FILL' 1" } : {}}>
-                        favorite
-                      </span>
-                    </button>
+                      {isInLibrary && (
+                        <button
+                          onClick={handleFavoriteToggle}
+                          disabled={isWatchlistAction}
+                          className={`flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-colors hover:bg-white/10 ${
+                            isFavorite ? "text-yellow-400" : "text-zinc-400"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[18px]" style={isFavorite ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                            favorite
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {/* Show Synopsis */}
-              <div className="mb-3 md:mb-6 max-h-16 md:max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
-                {details.overview || "No synopsis available."}
+                {/* Show Synopsis */}
+                <div className="mb-3 max-h-16 md:max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
+                  {details.overview || "No synopsis available."}
+                </div>
+
+                {/* Watch Trailer Button */}
+                <div className="mb-4">
+                  <button
+                    onClick={() => setShowTrailer(true)}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] touch-manipulation"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">movie</span>
+                    Watch Trailer
+                  </button>
+                </div>
               </div>
 
               {/* Season Selection */}
@@ -499,11 +531,12 @@ export function TvShowModal({
                       {/* Episode Thumbnail */}
                       <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-lg md:rounded-xl bg-zinc-900 border border-white/5 md:w-32">
                         {ep.still_path ? (
-                          <img
-                            src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
-                            alt={ep.name}
-                            className="h-full w-full object-cover"
-                          />
+                           <ImageWithLoader
+                             src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
+                             alt={ep.name}
+                             className="h-full w-full object-cover"
+                             loaderSize={30}
+                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-zinc-700">
                             <span className="material-symbols-outlined text-2xl">movie</span>
@@ -524,20 +557,22 @@ export function TvShowModal({
                             </h4>
 
                             {/* Watched Action */}
-                            <button
-                              onClick={() => handleEpisodeWatchToggle(ep)}
-                              disabled={!!isActionInProgress}
-                              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors border ${
-                                ep.isWatched
-                                  ? "bg-yellow-400/20 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/30"
-                                  : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
-                              }`}
-                            >
-                              <span className="material-symbols-outlined text-[14px]" style={ep.isWatched ? { fontVariationSettings: "'FILL' 1" } : {}}>
-                                visibility
-                              </span>
-                              {ep.isWatched ? "Watched" : "Watch"}
-                            </button>
+                            {isLoggedIn && (
+                              <button
+                                onClick={() => handleEpisodeWatchToggle(ep)}
+                                disabled={!!isActionInProgress}
+                                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors border ${
+                                  ep.isWatched
+                                    ? "bg-yellow-400/20 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/30"
+                                    : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[14px]" style={ep.isWatched ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                                  visibility
+                                </span>
+                                {ep.isWatched ? "Watched" : "Watch"}
+                              </button>
+                            )}
                           </div>
                           <div className="mt-1.5 flex items-center">
                             {(() => {
@@ -575,8 +610,8 @@ export function TvShowModal({
                           </p>
                         </div>
 
-                        {/* Interactive Voting / Rating (Only if watched) */}
-                        {ep.isWatched && (
+                        {/* Interactive Voting / Rating (Only if watched and logged in) */}
+                        {isLoggedIn && ep.isWatched && (
                           <div className="mt-1 flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between border-t border-white/5 pt-2">
                             {/* Reaction Emojis */}
                             <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
@@ -629,7 +664,18 @@ export function TvShowModal({
             </div>
           </motion.div>
         </div>
-      ) : null}
+      )}
     </AnimatePresence>
+
+    {isOpen && data && (
+      <TrailerPlayer
+        movieId={details.id}
+        movieTitle={details.name}
+        isOpen={showTrailer}
+        onClose={() => setShowTrailer(false)}
+        mediaType="tv"
+      />
+    )}
+    </>
   );
 }

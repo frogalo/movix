@@ -25,11 +25,8 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
           </span>
           <div className="space-y-4">
             <h1 className="font-headline-lg text-2xl text-[#ffedc3] md:text-4xl lg:text-6xl leading-tight">
-              Sign in with Google or your own password.
+              Sign in
             </h1>
-            <p className="max-w-xl text-sm leading-6 text-zinc-400 md:text-base md:leading-7">
-              OAuth gets you in fast. Email and password gives you a portable local account backed by PostgreSQL and Prisma.
-            </p>
           </div>
 
           {googleEnabled ? (
@@ -46,12 +43,6 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
               Google sign-in is disabled until valid `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` values are set.
             </div>
           )}
-
-          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-zinc-500">
-            <div className="h-px flex-1 bg-white/10" />
-            or use credentials
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
         </div>
 
         <div className="rounded-xl md:rounded-[1.75rem] border border-white/10 bg-black/30 p-4 md:p-7">

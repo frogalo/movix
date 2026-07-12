@@ -27,10 +27,10 @@ export function SideNavBar() {
           <span className="material-symbols-outlined">movie_filter</span>
           Home
         </Link>
-        <Link href="/discovery" className={`${baseLinkStyle} ${isActive('/discovery') ? activeLinkStyle : inactiveLinkStyle}`}>
+        {/* <Link href="/discovery" className={`${baseLinkStyle} ${isActive('/discovery') ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">swipe_vertical</span>
           Discovery
-        </Link>
+        </Link> */}
         <Link href="/library" className={`${baseLinkStyle} ${isActive('/library') ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">library_books</span>
           Library
@@ -40,33 +40,6 @@ export function SideNavBar() {
           Profile
         </Link>
       </nav>
-      <div className="px-4 space-y-2 pb-6 border-t border-white/10 pt-6 font-['Space_Grotesk'] font-medium">
-        <div className="px-4 pb-3">
-          <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Account</p>
-          <p className="mt-2 truncate text-sm text-zinc-300">
-            {session?.user?.email ?? "Not signed in"}
-          </p>
-        </div>
-        <Link href="#" className="flex items-center gap-4 text-zinc-500 px-4 py-3 hover:text-zinc-200 hover:bg-white/5 hover:backdrop-blur-md hover:translate-x-1 transition-all duration-200">
-          <span className="material-symbols-outlined">help_outline</span>
-          Support
-        </Link>
-        {session?.user ? (
-          <button
-            type="button"
-            onClick={() => signOut({ redirectTo: "/" })}
-            className="flex w-full items-center gap-4 text-zinc-500 px-4 py-3 hover:text-zinc-200 hover:bg-white/5 hover:backdrop-blur-md hover:translate-x-1 transition-all duration-200"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Sign Out
-          </button>
-        ) : (
-          <Link href="/login" className={`${baseLinkStyle} ${isActive("/login") ? activeLinkStyle : inactiveLinkStyle}`}>
-            <span className="material-symbols-outlined">login</span>
-            Sign In
-          </Link>
-        )}
-      </div>
     </aside>
   );
 }

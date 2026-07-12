@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TvShowModal } from "./TvShowModal";
+import { ImageWithLoader } from "./ImageWithLoader";
 
 type Episode = {
   id: string;
@@ -173,10 +174,11 @@ export function ProfileTvShowsSection({ initialTvShows }: ProfileTvShowsSectionP
               >
                 <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5">
                   {posterUrl ? (
-                    <img
+                    <ImageWithLoader
                       src={posterUrl}
                       alt={show.title}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loaderSize={40}
                     />
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center">

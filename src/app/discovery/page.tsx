@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Movie } from "@/components/TrendingMoviesCarousel";
+import { ImageWithLoader } from "@/components/ImageWithLoader";
 
 type ApiResponse = {
   page: number;
@@ -47,10 +48,11 @@ export default function Discovery() {
       <div className="flex-1 w-full flex items-center justify-center relative px-4">
         {currentMovie ? (
           <div className="relative w-full max-w-[420px] h-[60vh] md:h-[600px] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 group cursor-grab active:cursor-grabbing">
-            <img 
+            <ImageWithLoader 
               src={currentMovie.poster_path ? `https://image.tmdb.org/t/p/w500${currentMovie.poster_path}` : ''} 
               alt={currentMovie.title}
               className="absolute inset-0 w-full h-full object-cover"
+              loaderSize={60}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
             

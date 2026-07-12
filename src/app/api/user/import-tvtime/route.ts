@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -13,53 +10,95 @@ export async function POST() {
     }
 
     const userId = session.user.id;
-    const zipPath = 'C:\\Users\\tmpAdmin\\Downloads\\tvtime-export-2026-07-11.zip';
-    const jsonFileName = 'tvtime-series-2026-07-11.json';
+    const importData = await request.json();
 
-    // We can extract to a temp workspace folder inside the project
-    const tempDir = path.join(process.cwd(), '.next', 'cache', 'tvtime-import-temp');
-    const jsonPath = path.join(tempDir, jsonFileName);
+    let shows: any[] = [];
+    let watchlists: any[] = [];
+    let ratings: any[] = [];
 
-    console.log('[IMPORT] Checking if TV Time data is already extracted...');
+    if (Array.isArray(importData)) {
+      // Standard TV Time format
+      shows = importData;
+    } else if (importData && typeof importData === 'object') {
+      // Movix export format
+      watchlists = importData.watchlists || [];
+      ratings = importData.ratings || [];
+      const rawShows = importData.tvShows || [];
 
-    if (!fs.existsSync(jsonPath)) {
-      if (!fs.existsSync(zipPath)) {
-        return new NextResponse(`TV Time export zip file not found at ${zipPath}`, { status: 404 });
-      }
+      shows = rawShows.map((s: any) => {
+        const seasonsMap: { [key: number]: any[] } = {};
+        if (s.episodes && Array.isArray(s.episodes)) {
+          for (const ep of s.episodes) {
+            const sn = ep.seasonNumber;
+            if (!seasonsMap[sn]) seasonsMap[sn] = [];
+            seasonsMap[sn].push({
+              id: { tvdb: ep.tvdbId },
+              number: ep.episodeNumber,
+              name: ep.name,
+              is_watched: ep.isWatched,
+              watched_at: ep.watchedAt,
+              rewatch_count: ep.rewatchCount,
+            });
+          }
+        }
 
-      console.log('[IMPORT] Extracting zip file...');
-      fs.mkdirSync(tempDir, { recursive: true });
-      // Run powershell to extract only the JSON file to tempDir
-      const powershellCommand = `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempDir}' -Force"`;
-      execSync(powershellCommand);
-    }
+        const seasons = Object.entries(seasonsMap).map(([num, eps]) => ({
+          number: Number(num),
+          episodes: eps
+        }));
 
-    if (!fs.existsSync(jsonPath)) {
-      return new NextResponse(`Failed to find ${jsonFileName} after extraction`, { status: 500 });
-    }
-
-    console.log('[IMPORT] Reading and parsing JSON file...');
-    const rawData = fs.readFileSync(jsonPath, 'utf8');
-    const shows = JSON.parse(rawData);
-
-    if (!Array.isArray(shows)) {
-      return new NextResponse('Invalid import file structure, expected an array of shows', { status: 400 });
+        return {
+          id: {
+            tvdb: s.tvdbId,
+            imdb: s.imdbId
+          },
+          title: s.title,
+          status: s.status,
+          is_favorite: s.isFavorite,
+          seasons
+        };
+      });
+    } else {
+      return new NextResponse('Invalid import file structure', { status: 400 });
     }
 
     console.log(`[IMPORT] Starting database transaction for ${shows.length} shows...`);
 
+    // Import Watchlists if present
+    if (watchlists.length > 0) {
+      await prisma.watchlist.deleteMany({ where: { userId } });
+      await prisma.watchlist.createMany({
+        data: watchlists.map((w: any) => ({
+          userId,
+          movieId: Number(w.movieId),
+          createdAt: w.createdAt ? new Date(w.createdAt) : new Date()
+        }))
+      });
+    }
+
+    // Import Ratings if present
+    if (ratings.length > 0) {
+      await prisma.rating.deleteMany({ where: { userId } });
+      await prisma.rating.createMany({
+        data: ratings.map((r: any) => ({
+          userId,
+          movieId: Number(r.movieId),
+          rating: Number(r.rating),
+          createdAt: r.createdAt ? new Date(r.createdAt) : new Date()
+        }))
+      });
+    }
+
     let importedShowsCount = 0;
     let importedEpisodesCount = 0;
 
-    // Process in batches or sequential loop
     for (const show of shows) {
       if (!show.id || !show.id.tvdb) {
-        continue; // skip shows without TVDB ID
+        continue;
       }
 
       const tvdbId = Number(show.id.tvdb);
 
-      // 1. Upsert TV Show
       const tvShow = await prisma.tvShow.upsert({
         where: {
           userId_tvdbId: {
@@ -85,7 +124,6 @@ export async function POST() {
 
       importedShowsCount++;
 
-      // 2. Extract and prepare watched episodes
       const episodesToInsert: any[] = [];
       if (show.seasons && Array.isArray(show.seasons)) {
         for (const season of show.seasons) {
@@ -110,7 +148,6 @@ export async function POST() {
         }
       }
 
-      // 3. Clear existing watched episodes for this show and bulk insert
       if (episodesToInsert.length > 0) {
         await prisma.tvEpisode.deleteMany({
           where: {
@@ -125,8 +162,6 @@ export async function POST() {
         importedEpisodesCount += episodesToInsert.length;
       }
     }
-
-    console.log(`[IMPORT] Success! Imported ${importedShowsCount} shows and ${importedEpisodesCount} episodes.`);
 
     return NextResponse.json({
       success: true,

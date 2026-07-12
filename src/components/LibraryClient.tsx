@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MovieModal } from "./MovieModal";
 import { TvShowModal } from "./TvShowModal";
-import { motion } from "framer-motion";
+
+import { ImageWithLoader } from "./ImageWithLoader";
 
 type LibraryEntry = {
   movieId: number;
@@ -42,12 +43,17 @@ export function LibraryClient({
   const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const [selectedTvShowId, setSelectedTvShowId] = useState<number | null>(null);
   const [isMarking, setIsMarking] = useState<string | null>(null);
-  const [locallyWatched, setLocallyWatched] = useState<string[]>([]);
+  const [finishedShows, setFinishedShows] = useState<any[]>([]);
+  const [localWatchNext, setLocalWatchNext] = useState<any[]>(watchNextEpisodes);
   const [localShows, setLocalShows] = useState<any[]>(trackedShows);
   const [showsPage, setShowsPage] = useState(1);
   const [isLoadingMoreShows, setIsLoadingMoreShows] = useState(false);
   const [hasMoreShows, setHasMoreShows] = useState(showsPagination.currentPage < showsPagination.totalPages);
   const [watchNextLimit, setWatchNextLimit] = useState(5);
+
+  const filteredWatchlistMovies = watchlistMovies.filter(
+    (m) => !userLibrary.ratings.some((r) => r.movieId === m.id)
+  );
 
   useEffect(() => {
     setLocalShows(trackedShows);
@@ -56,16 +62,18 @@ export function LibraryClient({
   }, [trackedShows, showsPagination]);
 
   useEffect(() => {
+    setLocalWatchNext(watchNextEpisodes);
+  }, [watchNextEpisodes]);
+
+  useEffect(() => {
     const handleWindowScroll = () => {
       const scrollHeight = document.documentElement.scrollHeight;
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const clientHeight = window.innerHeight;
-
       if (scrollHeight - scrollTop <= clientHeight + 250) {
         loadMoreShows();
       }
     };
-
     window.addEventListener("scroll", handleWindowScroll);
     return () => window.removeEventListener("scroll", handleWindowScroll);
   }, [hasMoreShows, isLoadingMoreShows, showsPage]);
@@ -97,53 +105,43 @@ export function LibraryClient({
   };
 
   const handleMarkWatched = async (ep: any) => {
-    const key = `${ep.showId}-${ep.seasonNumber}-${ep.episodeNumber}`;
-    const isChecked = locallyWatched.includes(key);
-
-    if (isChecked) {
-      setIsMarking(key);
-      try {
-        const res = await fetch("/api/tv/episodes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tmdbId: ep.tmdbId,
-            showTitle: ep.showTitle,
-            seasonNumber: ep.seasonNumber,
-            episodeNumber: ep.episodeNumber,
-            isWatched: false,
-          }),
-        });
-        if (res.ok) {
-          setLocallyWatched((prev) => prev.filter((k) => k !== key));
+    const showId = ep.showId;
+    if (isMarking === showId) return;
+    setIsMarking(showId);
+    try {
+      const res = await fetch("/api/tv/episodes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tmdbId: ep.tmdbId,
+          showTitle: ep.showTitle,
+          seasonNumber: ep.seasonNumber,
+          episodeNumber: ep.episodeNumber,
+          isWatched: true,
+        }),
+      });
+      if (res.ok) {
+        if (ep.remainingCount === 0) {
+          setLocalWatchNext((prev) => prev.filter((e) => e.showId !== showId));
+          setFinishedShows((prev) => [...prev, ep]);
+        } else {
+          const nextRes = await fetch(`/api/tv/watch-next?showId=${showId}`);
+          if (nextRes.ok) {
+            const nextEp = await nextRes.json();
+            if (nextEp) {
+              setLocalWatchNext((prev) => prev.map((e) => e.showId === showId ? nextEp : e));
+            } else {
+              setLocalWatchNext((prev) => prev.filter((e) => e.showId !== showId));
+            }
+          } else {
+            setLocalWatchNext((prev) => prev.filter((e) => e.showId !== showId));
+          }
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsMarking(null);
       }
-    } else {
-      setIsMarking(key);
-      try {
-        const res = await fetch("/api/tv/episodes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tmdbId: ep.tmdbId,
-            showTitle: ep.showTitle,
-            seasonNumber: ep.seasonNumber,
-            episodeNumber: ep.episodeNumber,
-            isWatched: true,
-          }),
-        });
-        if (res.ok) {
-          setLocallyWatched((prev) => [...prev, key]);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsMarking(null);
-      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsMarking(null);
     }
   };
 
@@ -154,34 +152,16 @@ export function LibraryClient({
   };
 
   return (
-    <main 
+    <main
       onScroll={(e) => {
         const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
         if (scrollHeight - scrollTop <= clientHeight + 250) {
           loadMoreShows();
         }
       }}
-      className="relative h-screen w-full overflow-y-auto pb-24 md:ml-64 md:w-[calc(100%-16rem)] md:pb-12"
+      className="relative h-screen min-w-0 max-w-full overflow-x-hidden overflow-y-auto pb-24 md:ml-64 md:w-[calc(100%-16rem)] md:pb-12"
     >
-      <section className="relative overflow-hidden px-6 pb-12 pt-24 md:px-12 md:pt-16">
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-[#571bc1] blur-[120px] mix-blend-screen" />
-          <div className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-[#ffcc00] blur-[100px] mix-blend-screen" />
-        </div>
-
-        <div className="relative z-10 mx-auto mt-4 md:mt-12 flex max-w-7xl flex-col items-center gap-6 md:gap-8 md:flex-row md:items-start">
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="mb-2 font-headline-lg text-[28px] md:text-headline-lg text-[#ffedc3] drop-shadow-lg">
-              Your Library
-            </h2>
-            <p className="max-w-2xl font-body-md md:font-body-lg text-[13px] md:text-body-lg text-zinc-400">
-              Manage your watchlist, tracked TV series, and see recommendations for what to watch next.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1600px] space-y-12 px-4 md:px-12 pb-28 md:pb-24">
+      <section className="mx-auto max-w-[1600px] space-y-12 px-4 pt-24 md:px-12 md:pt-12 pb-28 md:pb-24">
         {/* Watch Next Section */}
         <div>
           <div className="mb-6 flex items-end justify-between border-b border-white/10 pb-4">
@@ -191,134 +171,153 @@ export function LibraryClient({
               </span>
               Watch Next
             </h3>
-            <span className="font-label-sm text-[12px] font-bold uppercase text-[#00daf3]">
-              Up Next & Watchlist
-            </span>
           </div>
 
-          {watchNextEpisodes.length === 0 && watchlistMovies.length === 0 ? (
+          {localWatchNext.length === 0 && filteredWatchlistMovies.length === 0 ? (
             <div className="glass-panel rounded-2xl p-8 text-center text-zinc-400">
               <span className="material-symbols-outlined text-4xl mb-2 opacity-50">smart_display</span>
               <p>Nothing in Watch Next. Start watching TV shows or save movies to watchlist!</p>
             </div>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-12">
+            <div className="grid min-w-0 max-w-full gap-6 lg:grid-cols-12">
               {/* TV Watch Next */}
-              {watchNextEpisodes.length > 0 && (
-                <div className="space-y-4 lg:col-span-7">
+              {localWatchNext.length > 0 && (
+                <div className={`space-y-4 w-full min-w-0 ${filteredWatchlistMovies.length > 0 ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
                   <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">TV Shows (New Episodes)</h4>
-                  <div className="space-y-4">
-                    {watchNextEpisodes.slice(0, watchNextLimit).map((ep) => {
-                      const airDate = ep.air_date ? new Date(ep.air_date) : null;
-                      const isNew = airDate && (Date.now() - airDate.getTime()) < (7 * 24 * 60 * 60 * 1000) && airDate.getTime() <= Date.now();
-                      const isPremiere = ep.episodeNumber === 1;
-                      const key = `${ep.showId}-${ep.seasonNumber}-${ep.episodeNumber}`;
-                      const isMarkingThis = isMarking === key;
-                      const isChecked = locallyWatched.includes(key);
-
+                  <div className="space-y-4 overflow-hidden py-1 px-1">
+                    {[
+                      ...finishedShows.map((ep: any) => ({ showId: ep.showId, ep, isFinished: true })),
+                      ...localWatchNext
+                        .filter((we: any) => !finishedShows.some((fs: any) => fs.showId === we.showId))
+                        .map((ep: any) => ({ showId: ep.showId, ep, isFinished: false }))
+                    ].slice(0, watchNextLimit).map(({ showId, ep, isFinished }: { showId: string; ep: any; isFinished: boolean }) => {
+                      const isMarkingThis = isMarking === showId;
                       return (
-                        <div
-                          key={ep.showId}
-                          onClick={() => setSelectedTvShowId(ep.tmdbId)}
-                          className={`glass-panel flex overflow-hidden rounded-2xl border border-white/10 hover:border-yellow-400/30 hover:scale-[1.01] hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)] active:bg-white/5 transition-all duration-300 group touch-manipulation relative ${
-                            isChecked ? "opacity-30 border-emerald-500/20 bg-emerald-950/5 scale-[0.99] hover:scale-[0.99]" : ""
-                          }`}
-                        >
-                          {/* Left: Image spanning to top, bottom and left borders */}
-                          <div className="w-28 md:w-44 shrink-0 relative bg-zinc-950 self-stretch min-h-[110px] md:min-h-[130px]">
-                            {ep.still_path ? (
-                              <img
-                                src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
-                                alt={ep.name}
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                <span className="material-symbols-outlined">tv</span>
+                        <div key={showId}>
+                          {isFinished ? (
+                            <div className="glass-panel flex w-full min-w-0 flex-col items-center justify-center rounded-2xl border border-yellow-400/50 bg-yellow-950/20 p-6 md:p-8 text-center shadow-[0_0_30px_rgba(250,204,21,0.2)] relative overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-t from-yellow-500/10 to-transparent pointer-events-none" />
+                              <span className="material-symbols-outlined text-[48px] md:text-[64px] text-yellow-400 mb-4 animate-bounce">verified</span>
+                              <h4 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-lg">Congratulations!</h4>
+                              <p className="text-sm md:text-base text-zinc-300 max-w-[80%] mx-auto">
+                                You've finished watching <span className="font-bold text-white">{ep.showTitle}</span>.
+                              </p>
+                              <div className="flex gap-8 mt-6">
+                                <div className="flex flex-col items-center">
+                                  <span className="text-3xl font-black text-yellow-400 drop-shadow-md">{ep.totalEpisodesWatched + 1}</span>
+                                  <span className="text-[10px] md:text-xs uppercase font-bold text-zinc-500 tracking-widest mt-1">Episodes</span>
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-3xl font-black text-emerald-400 drop-shadow-md">{Math.round(((ep.totalWatchTimeMinutes || 0) + 45) / 60)}</span>
+                                  <span className="text-[10px] md:text-xs uppercase font-bold text-zinc-500 tracking-widest mt-1">Hours</span>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                          
-                          {/* Right: Padding containing Details & Action */}
-                          <div className="flex-1 min-w-0 p-3 md:p-5 flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0 flex flex-col gap-1">
-                              <div className="flex flex-wrap gap-2 items-center">
-                                <span className="border border-white/10 bg-white/5 rounded-full px-2.5 py-0.5 text-[9px] font-bold text-zinc-400 uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors">
-                                  {ep.showTitle} ›
-                                </span>
-                              </div>
-                              
-                              <div className="flex items-baseline gap-1.5 mt-0.5">
-                                <span className="text-white text-base md:text-xl font-[family-name:var(--font-bricolage-grotesque)] font-extrabold tracking-tight">
-                                  S{ep.seasonNumber.toString().padStart(2, '0')} | E{ep.episodeNumber.toString().padStart(2, '0')}
-                                </span>
-                                {ep.remainingCount > 0 && (
-                                  <span className="text-zinc-500 text-xs font-semibold">
-                                    +{ep.remainingCount}
-                                  </span>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => setSelectedTvShowId(ep.tmdbId)}
+                              className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 hover:border-yellow-400/30 hover:scale-[1.01] hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)] active:bg-white/5 transition-all duration-300 group touch-manipulation cursor-pointer"
+                            >
+                              {/* Left: Image */}
+                              <div className="w-28 md:w-44 shrink-0 relative bg-zinc-950 self-stretch min-h-[110px] md:min-h-[130px] overflow-hidden">
+                                {ep.still_path ? (
+                                  <ImageWithLoader
+                                    src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
+                                    alt={ep.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                    <span className="material-symbols-outlined">tv</span>
+                                  </div>
                                 )}
                               </div>
-                              
-                              <span className="text-zinc-400 text-xs md:text-sm font-semibold truncate group-hover:text-yellow-300 transition-colors">
-                                {ep.name}
-                              </span>
-                              
-                              <div className="flex gap-1.5 mt-1">
-                                {isNew && (
-                                  <span className="bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-[0_0_10px_rgba(250,204,21,0.5)]">
-                                    <span className="relative flex h-1.5 w-1.5">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-black"></span>
+
+                              {/* Right: Details & Action */}
+                              <div className="flex-1 min-w-0 p-3 md:p-5 flex items-center justify-between gap-2 md:gap-4">
+                                <div className="flex-1 min-w-0 flex flex-col gap-1 overflow-hidden">
+                                  <div className="flex flex-wrap gap-2 items-center min-w-0">
+                                    <span className="border border-white/10 bg-white/5 rounded-full px-2.5 py-0.5 text-[9px] font-bold text-zinc-400 uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors truncate max-w-full block">
+                                      {ep.showTitle} ›
                                     </span>
-                                    NEW
+                                  </div>
+
+                                  <div className="flex items-baseline gap-1.5 mt-0.5 min-w-0">
+                                    <span className="text-white text-base md:text-xl font-[family-name:var(--font-bricolage-grotesque)] font-extrabold tracking-tight shrink-0">
+                                      S{ep.seasonNumber.toString().padStart(2, '0')} | E{ep.episodeNumber.toString().padStart(2, '0')}
+                                    </span>
+                                    {ep.remainingCount > 0 && (
+                                      <span className="text-zinc-500 text-xs font-semibold shrink-0">
+                                        +{ep.remainingCount}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <span className="text-zinc-400 text-xs md:text-sm font-semibold truncate block w-full group-hover:text-yellow-300 transition-colors">
+                                    {ep.name}
                                   </span>
-                                )}
-                                {isPremiere && (
-                                  <span className="bg-white/10 border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                    PREMIERE
-                                  </span>
+
+                                  <div className="flex gap-1.5 mt-1">
+                                    {ep.isNew && !ep.isFuture && (
+                                      <span className="bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-[0_0_10px_rgba(250,204,21,0.5)] shrink-0">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-black"></span>
+                                        </span>
+                                        NEW
+                                      </span>
+                                    )}
+                                    {ep.isFuture && (
+                                      <span className="bg-[#00daf3] text-black text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-[0_0_10px_rgba(0,218,243,0.5)] shrink-0">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-black"></span>
+                                        </span>
+                                        SOON
+                                      </span>
+                                    )}
+                                    {ep.episodeNumber === 1 && (
+                                      <span className="bg-white/10 border border-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
+                                        PREMIERE
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {ep.isFuture ? (
+                                  <div className="flex flex-col items-center justify-center bg-black/40 border border-yellow-400/30 rounded-xl px-3 py-2 shrink-0">
+                                    <span className="text-yellow-400 font-black text-lg md:text-xl">{ep.daysUntil}</span>
+                                    <span className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider">Days</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMarkWatched(ep);
+                                    }}
+                                    disabled={isMarkingThis}
+                                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all shrink-0 shadow-lg ${
+                                      isMarkingThis
+                                        ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed"
+                                        : "bg-white border-transparent text-zinc-950 hover:bg-zinc-100"
+                                    }`}
+                                    aria-label="Mark as watched"
+                                  >
+                                    {isMarkingThis ? (
+                                      <div className="w-5 h-5 border-2 border-zinc-500 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                      <span className="material-symbols-outlined text-[20px] font-black">check</span>
+                                    )}
+                                  </button>
                                 )}
                               </div>
                             </div>
-
-                            <motion.button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMarkWatched(ep);
-                              }}
-                              disabled={isMarkingThis}
-                              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all shrink-0 shadow-lg ${
-                                isChecked
-                                  ? "bg-emerald-500 border-transparent text-white scale-110"
-                                  : isMarkingThis
-                                    ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed"
-                                    : "bg-white border-transparent text-zinc-950 hover:bg-zinc-100"
-                              }`}
-                              initial={{ scale: 1 }}
-                              animate={isChecked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                              transition={{ duration: 0.3 }}
-                              aria-label="Mark as watched"
-                            >
-                              {isMarkingThis ? (
-                                <div className="w-5 h-5 border-2 border-zinc-500 border-t-white rounded-full animate-spin"></div>
-                              ) : isChecked ? (
-                                <motion.span 
-                                  initial={{ opacity: 0, scale: 0.5 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  className="material-symbols-outlined text-[20px] font-black"
-                                >
-                                  check
-                                </motion.span>
-                              ) : (
-                                <span className="material-symbols-outlined text-[20px] font-black">check</span>
-                              )}
-                            </motion.button>
-                          </div>
+                          )}
                         </div>
                       );
                     })}
-                    
-                    {watchNextEpisodes.length > watchNextLimit && (
+
+                    {localWatchNext.length > watchNextLimit && (
                       <div className="flex justify-center pt-2">
                         <button
                           onClick={(e) => {
@@ -336,19 +335,19 @@ export function LibraryClient({
               )}
 
               {/* Movies Watchlist */}
-              {watchlistMovies.length > 0 && (
-                <div className={`space-y-4 ${watchNextEpisodes.length > 0 ? 'lg:col-span-5' : 'lg:col-span-12'}`}>
+              {filteredWatchlistMovies.length > 0 && (
+                <div className={`space-y-4 min-w-0 w-full ${localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
                   <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">Watchlist Movies</h4>
-                  <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-                    {watchlistMovies.map((m) => (
+                  <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:mx-0 md:px-0">
+                    {filteredWatchlistMovies.map((m) => (
                       <div
                         key={m.id}
                         onClick={() => setSelectedMovie(m)}
-                        className="w-28 md:w-36 shrink-0 flex flex-col gap-2 cursor-pointer group touch-manipulation"
+                        className="w-28 md:w-full shrink-0 md:shrink flex flex-col gap-2 cursor-pointer group touch-manipulation"
                       >
                         <div className="w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-xl relative">
                           {m.poster_path ? (
-                            <img
+                            <ImageWithLoader
                               src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
                               alt={m.title}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
@@ -401,7 +400,7 @@ export function LibraryClient({
                   >
                     <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5 shadow-xl">
                       {m.poster_path ? (
-                        <img
+                        <ImageWithLoader
                           src={`https://image.tmdb.org/t/p/w342${m.poster_path}`}
                           alt={m.title}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -423,7 +422,6 @@ export function LibraryClient({
                 ))}
               </div>
 
-              {/* Ratings Pagination Controls */}
               {ratingsPagination.totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-4">
                   <button
@@ -476,7 +474,6 @@ export function LibraryClient({
                   const posterUrl = show.posterPath
                     ? `https://image.tmdb.org/t/p/w342${show.posterPath}`
                     : null;
-
                   return (
                     <div
                       key={show.id}
@@ -485,7 +482,7 @@ export function LibraryClient({
                     >
                       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5 shadow-xl">
                         {posterUrl ? (
-                          <img
+                          <ImageWithLoader
                             src={posterUrl}
                             alt={show.title}
                             className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
@@ -509,7 +506,6 @@ export function LibraryClient({
                 })}
               </div>
 
-              {/* TV Shows Pagination loading spinner */}
               {isLoadingMoreShows && (
                 <div className="flex justify-center py-4">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-purple-500"></div>

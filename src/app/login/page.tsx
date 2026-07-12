@@ -16,7 +16,7 @@ export default async function LoginPage() {
         <div className="absolute bottom-[5%] right-[10%] h-80 w-80 rounded-full bg-[#ffcc00] blur-[140px]" />
         <div className="absolute right-[20%] top-[20%] h-64 w-64 rounded-full bg-[#00daf3] blur-[130px]" />
       </div>
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full flex justify-center">
         <AuthPanel googleEnabled={isGoogleAuthEnabled} />
       </div>
     </main>

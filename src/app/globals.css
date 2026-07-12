@@ -99,6 +99,7 @@
 body {
   background-color: var(--color-background);
   color: var(--color-on-background);
+  max-width: 100%;
 }
 
 .hide-scrollbar::-webkit-scrollbar {

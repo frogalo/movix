@@ -19,10 +19,10 @@ export function BottomNavBar() {
         <span className="material-symbols-outlined text-[22px]" style={isActive("/") ? { fontVariationSettings: "'FILL' 1" } : {}}>movie_filter</span>
         <span className="text-[10px] font-semibold tracking-wide">Home</span>
       </Link>
-      <Link href="/discovery" className={linkClass("/discovery")}>
+      {/* <Link href="/discovery" className={linkClass("/discovery")}>
         <span className="material-symbols-outlined text-[22px]" style={isActive("/discovery") ? { fontVariationSettings: "'FILL' 1" } : {}}>explore</span>
         <span className="text-[10px] font-semibold tracking-wide">Discover</span>
-      </Link>
+      </Link> */}
       <Link href="/library" className={linkClass("/library")}>
         <span className="material-symbols-outlined text-[22px]" style={isActive("/library") ? { fontVariationSettings: "'FILL' 1" } : {}}>bookmark_added</span>
         <span className="text-[10px] font-semibold tracking-wide">Library</span>

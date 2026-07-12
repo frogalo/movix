@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { ImageWithLoader } from './ImageWithLoader';
 
 export function SearchOverlay() {
   const { data: session } = useSession();
@@ -106,10 +107,12 @@ export function SearchOverlay() {
             onClick={() => handleSelect(result)}
             className="px-4 py-3 flex items-center gap-3 hover:bg-white/10 active:bg-white/15 cursor-pointer transition-colors touch-manipulation"
           >
-            <img 
+            <ImageWithLoader 
               src={result.poster_path || result.backdrop_path ? `https://image.tmdb.org/t/p/w92${result.poster_path || result.backdrop_path}` : 'https://via.placeholder.com/92x138?text=No+Image'} 
               alt={result.title || result.name} 
-              className="w-11 h-16 object-cover rounded-lg shadow-md shrink-0 bg-zinc-800"
+              className="w-full h-full object-cover rounded-lg"
+              wrapperClassName="w-11 h-16 shrink-0 shadow-md bg-zinc-800 rounded-lg"
+              loaderSize={20}
             />
             <div className="flex flex-col overflow-hidden">
               <span className="text-white text-sm font-semibold truncate">{result.title || result.name}</span>
@@ -198,10 +201,11 @@ export function SearchOverlay() {
             <span className="material-symbols-outlined text-zinc-400 hover:text-white cursor-pointer transition-colors">notifications</span>
             <Link href="/profile" className="shrink-0 flex items-center justify-center">
               {session?.user?.image ? (
-                <img
+                <ImageWithLoader
                   alt="User Profile Avatar"
                   className="w-9 h-9 rounded-full border-2 border-white/20 cursor-pointer hover:border-white/50 transition-colors object-cover shrink-0"
                   src={session.user.image}
+                  loaderSize={16}
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-zinc-800 border-2 border-white/20 flex items-center justify-center hover:border-white/50 transition-colors shrink-0">

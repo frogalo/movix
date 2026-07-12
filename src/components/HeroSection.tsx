@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Movie } from "./TrendingMoviesCarousel";
+import { useSession } from "next-auth/react";
+import { ImageWithLoader } from "./ImageWithLoader";
+import { TrailerPlayer } from "./TrailerPlayer";
 
 interface HeroSectionProps {
   movie?: Movie | null;
@@ -12,9 +15,12 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick }: HeroSectionProps) {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   const [isAdding, setIsAdding] = useState(false);
   const [isRating, setIsRating] = useState(false);
   const [showRatingPicker, setShowRatingPicker] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   if (!movie) {
     return (
@@ -96,13 +102,15 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
       : "https://lh3.googleusercontent.com/aida-public/AB6AXuAjCmsDHsGPW5SbA70dw3GvBfY_R87xaX74hADDNg8v923tgsTr-Tnzl6auxgfpPaidQntP44aO6IFmdjKhgxrgFDcS0vawns9CgXLFzHJjDRf3RTfDvc4pbT2U4Wn3fVdavKHqcxWNiVTNTk0JnxrUg9e-vY6COVF_L-dlWNyzs1-0bUpgrx1dmySxrXbMub4T7QDVXe3DZr6YGrsulzkHbm_GvVtsPquPwxz97A3Mq-_DMoVhvIbThQMp8mSdyhqWrdo7_bfN8Ew7";
 
   return (
+    <>
     <section className="relative w-full h-[500px] md:h-[870px] overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent z-10 w-[70%]"></div>
-      <img
+      <ImageWithLoader
         alt="Hero Movie Backdrop"
         className="absolute inset-0 w-full h-full object-cover object-top opacity-80"
         src={bgImage}
+        loaderSize={80}
       />
       <div className="absolute z-20 bottom-0 left-0 p-5 pb-20 md:pb-12 md:p-12 w-full md:w-2/3 flex flex-col gap-2 md:gap-stack-md">
         <div className="flex items-center gap-3 mb-2">
@@ -128,78 +136,92 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
           {movie.overview}
         </p>
         <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1 md:mt-2 relative">
-          <motion.button whileTap={{ scale: 0.95 }} className="bg-primary-container text-on-primary hover:bg-primary transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(255,204,0,0.3)] touch-manipulation">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowTrailer(true)}
+            className="bg-primary-container text-on-primary hover:bg-primary transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(255,204,0,0.3)] touch-manipulation"
+          >
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
             Watch Trailer
           </motion.button>
           
-          {movie.media_type === 'tv' ? (
-            <motion.button 
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onTvShowClick && onTvShowClick(movie)}
-              className="bg-purple-600 text-white border border-transparent hover:bg-purple-500 transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(147,51,234,0.4)] touch-manipulation"
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>live_tv</span>
-              Track Episodes & Vote
-            </motion.button>
-          ) : (
-            <>
+          {isLoggedIn && (
+            movie.media_type === 'tv' ? (
               <motion.button 
                 whileTap={{ scale: 0.95 }}
-                onClick={handleWatchlist}
-                disabled={isAdding}
-                className={`transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 border disabled:opacity-50 touch-manipulation ${isInWatchlist ? 'bg-white text-black border-white hover:bg-zinc-200' : 'glass-panel text-white hover:bg-white/10 border-white/20'}`}
+                onClick={() => onTvShowClick && onTvShowClick(movie)}
+                className="bg-purple-600 text-white border border-transparent hover:bg-purple-500 transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(147,51,234,0.4)] touch-manipulation"
               >
-                <span className="material-symbols-outlined" style={isInWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}>{isAdding ? 'hourglass_empty' : (isInWatchlist ? 'bookmark_added' : 'add')}</span>
-                {isInWatchlist ? 'In Watchlist' : 'Watchlist'}
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>live_tv</span>
+                Track Episodes & Vote
               </motion.button>
-
-              <div className="relative">
+            ) : (
+              <>
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowRatingPicker(!showRatingPicker)}
-                  disabled={isRating}
-                  className={`h-[44px] md:h-[56px] px-4 md:px-6 flex gap-1.5 md:gap-2 items-center justify-center rounded-lg transition-colors border disabled:opacity-50 touch-manipulation ${userRating ? 'bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500' : 'glass-panel text-white hover:bg-white/10 border-white/20'}`}
+                  onClick={handleWatchlist}
+                  disabled={isAdding}
+                  className={`transition-colors px-4 py-2.5 md:px-6 md:py-4 rounded-lg font-headline-md text-[13px] md:text-[16px] flex items-center gap-1.5 md:gap-2 border disabled:opacity-50 touch-manipulation ${isInWatchlist ? 'bg-white text-black border-white hover:bg-zinc-200' : 'glass-panel text-white hover:bg-white/10 border-white/20'}`}
                 >
-                  <span className="material-symbols-outlined" style={userRating ? { fontVariationSettings: "'FILL' 1" } : {}}>{isRating ? 'hourglass_empty' : 'star'}</span>
-                  {userRating ? <span className="font-bold">{userRating}/10</span> : null}
+                  <span className="material-symbols-outlined" style={isInWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}>{isAdding ? 'hourglass_empty' : (isInWatchlist ? 'bookmark_added' : 'add')}</span>
+                  {isInWatchlist ? 'In Watchlist' : 'Watchlist'}
                 </motion.button>
-                
-                <AnimatePresence>
-                  {showRatingPicker && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 mb-3 bg-zinc-800 p-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-1 z-50 flex-wrap w-[220px] md:w-[280px]"
-                    >
-                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                        <motion.button 
-                          whileTap={{ scale: 0.9 }}
-                          key={n} 
-                          onClick={() => handleRating(n)}
-                          className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${userRating === n ? 'bg-yellow-400 text-black' : 'bg-zinc-700 text-white hover:bg-zinc-600'}`}
-                        >
-                          {n}
-                        </motion.button>
-                      ))}
-                      {userRating && (
-                        <motion.button 
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleRemoveRating}
-                          className="w-full mt-2 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                        >
-                          Remove Rating
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </>
+
+                <div className="relative">
+                  <motion.button 
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowRatingPicker(!showRatingPicker)}
+                    disabled={isRating}
+                    className={`h-[44px] md:h-[56px] px-4 md:px-6 flex gap-1.5 md:gap-2 items-center justify-center rounded-lg transition-colors border disabled:opacity-50 touch-manipulation ${userRating ? 'bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500' : 'glass-panel text-white hover:bg-white/10 border-white/20'}`}
+                  >
+                    <span className="material-symbols-outlined" style={userRating ? { fontVariationSettings: "'FILL' 1" } : {}}>{isRating ? 'hourglass_empty' : 'star'}</span>
+                    {userRating ? <span className="font-bold">{userRating}/10</span> : null}
+                  </motion.button>
+                  
+                  <AnimatePresence>
+                    {showRatingPicker && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 mb-3 bg-zinc-800 p-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-1 z-50 flex-wrap w-[220px] md:w-[280px]"
+                      >
+                        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                          <motion.button 
+                            whileTap={{ scale: 0.9 }}
+                            key={n} 
+                            onClick={() => handleRating(n)}
+                            className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${userRating === n ? 'bg-yellow-400 text-black' : 'bg-zinc-700 text-white hover:bg-zinc-600'}`}
+                          >
+                            {n}
+                          </motion.button>
+                        ))}
+                        {userRating && (
+                          <motion.button 
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleRemoveRating}
+                            className="w-full mt-2 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          >
+                            Remove Rating
+                          </motion.button>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
+            )
           )}
         </div>
       </div>
     </section>
+
+    <TrailerPlayer
+      movieId={movie.id}
+      movieTitle={title}
+      isOpen={showTrailer}
+      onClose={() => setShowTrailer(false)}
+    />
+    </>
   );
 }

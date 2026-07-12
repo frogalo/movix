@@ -24,10 +24,53 @@ function HomeContent() {
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [userLibrary, setUserLibrary] = useState({ watchlists: [], ratings: [] });
+  const [userLibrary, setUserLibrary] = useState({ watchlists: [], ratings: [], tvShows: [] });
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMovies, setShowMovies] = useState(true);
+  const [showTv, setShowTv] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  useEffect(() => {
+    const savedM = localStorage.getItem('filter_show_movies');
+    const savedTv = localStorage.getItem('filter_show_tv');
+    if (savedM !== null) setShowMovies(savedM === 'true');
+    if (savedTv !== null) setShowTv(savedTv === 'true');
+  }, []);
+
+  const toggleMovies = () => {
+    setShowMovies(prev => {
+      const newVal = !prev;
+      if (!newVal && !showTv) return prev;
+      localStorage.setItem('filter_show_movies', String(newVal));
+      return newVal;
+    });
+  };
+
+  const toggleTv = () => {
+    setShowTv(prev => {
+      const newVal = !prev;
+      if (!newVal && !showMovies) return prev;
+      localStorage.setItem('filter_show_tv', String(newVal));
+      return newVal;
+    });
+  };
+
+  const filteredMovies = movies.filter(movie => {
+    const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
+    return isTv ? showTv : showMovies;
+  });
+
+  useEffect(() => {
+    if (filteredMovies.length > 0) {
+      const currentIsTv = selectedMovie?.media_type === 'tv' || (!selectedMovie?.title && !!selectedMovie?.name);
+      const currentMatchesFilter = selectedMovie && (currentIsTv ? showTv : showMovies);
+      if (!currentMatchesFilter) {
+        setSelectedMovie(filteredMovies[0]);
+      }
+    }
+  }, [filteredMovies, showMovies, showTv, selectedMovie]);
 
   useEffect(() => {
     const movieId = searchParams.get('movieId');
@@ -63,16 +106,25 @@ function HomeContent() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setShowAll(true);
+      setIsMobile(true);
+    }
+
     fetchLibrary();
 
     fetch(`/api/trending?page=1`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch trending");
+        return res.json();
+      })
       .then((data: ApiResponse) => {
         setMovies(data.results);
         if (data.results.length > 0) {
           setSelectedMovie(data.results[0]);
         }
-      });
+      })
+      .catch(console.error);
   }, []);
 
   const loadMoreMovies = () => {
@@ -134,6 +186,7 @@ function HomeContent() {
 
   // Wheel support (desktop)
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
     const handleWheel = (e: WheelEvent) => {
       if (isModalOpen || isTvModalOpen) return;
       if (!showAll && e.deltaY > 20) {
@@ -150,6 +203,7 @@ function HomeContent() {
 
   // Touch/swipe support (mobile)
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
     let touchStartY = 0;
     let touchStartTime = 0;
 
@@ -195,22 +249,27 @@ function HomeContent() {
       <AnimatePresence>
         {!showAll && (
           <motion.div
+            key="hero-section"
             initial={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="w-full origin-top overflow-hidden"
+            exit={isMobile ? undefined : { opacity: 0, height: 0 }}
+            transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeInOut" }}
+            className="w-full origin-top overflow-hidden hidden md:block"
           >
             <HeroSection movie={selectedMovie} userLibrary={userLibrary} onLibraryUpdate={fetchLibrary} onTvShowClick={handleMovieSelect} />
           </motion.div>
         )}
       </AnimatePresence>
       <TrendingMoviesCarousel 
-        movies={movies} 
+        movies={filteredMovies} 
         onMovieSelect={handleMovieSelect} 
         isGrid={showAll}
         onToggleGrid={() => setShowAll(!showAll)}
         userLibrary={userLibrary}
         onLoadMore={loadMoreMovies}
+        showMovies={showMovies}
+        showTv={showTv}
+        onToggleMovies={toggleMovies}
+        onToggleTv={toggleTv}
       />
       {isLoadingMore && showAll && (
         <div className="flex justify-center pb-8">

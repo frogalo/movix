@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Movie } from "./TrendingMoviesCarousel";
+import { useSession } from "next-auth/react";
+import { ImageWithLoader } from "./ImageWithLoader";
+import { TrailerPlayer } from "./TrailerPlayer";
 
 type LibraryEntry = {
   movieId: number;
@@ -49,12 +52,15 @@ export function MovieModal({
   userLibrary,
   onLibraryUpdate,
 }: MovieModalProps) {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   const [isAdding, setIsAdding] = useState(false);
   const [isRating, setIsRating] = useState(false);
   const [extraInfo, setExtraInfo] = useState<MovieExtraInfo | null>(null);
   const [showRatingPicker, setShowRatingPicker] = useState(false);
   const [isLoadingExtra, setIsLoadingExtra] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     if (movie && isOpen) {
@@ -156,9 +162,10 @@ export function MovieModal({
   };
 
   return (
+    <>
     <AnimatePresence>
       {isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-8 overscroll-none">
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-8 overscroll-none">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -172,28 +179,32 @@ export function MovieModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 24 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="glass-panel relative z-10 flex h-[100vh] md:h-auto max-h-[100vh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+            className="glass-panel relative z-10 flex h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
           >
             <button
               onClick={onClose}
-              className="absolute right-4 top-20 md:top-4 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              className="absolute right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+              style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
             >
               <span className="material-symbols-outlined">close</span>
             </button>
 
-            <button
-              onClick={handleWatchlist}
-              disabled={isAdding}
-              className="absolute left-4 top-20 md:top-4 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
-              aria-label="Save to watchlist"
-            >
-              <span
-                className="material-symbols-outlined"
-                style={isInWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}
+            {isLoggedIn && (
+              <button
+                onClick={handleWatchlist}
+                disabled={isAdding}
+                className="absolute left-4 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition hover:bg-black/80 touch-manipulation"
+                style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
+                aria-label="Save to watchlist"
               >
-                {isAdding ? "hourglass_empty" : isInWatchlist ? "bookmark_added" : "bookmarks"}
-              </span>
-            </button>
+                <span
+                  className="material-symbols-outlined"
+                  style={isInWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}
+                >
+                  {isAdding ? "hourglass_empty" : isInWatchlist ? "bookmark_added" : "bookmarks"}
+                </span>
+              </button>
+            )}
 
             <div 
               className="relative w-full shrink-0 overflow-hidden md:h-auto md:w-[44%] transition-all duration-75"
@@ -204,11 +215,12 @@ export function MovieModal({
               }}
             >
               {heroImage ? (
-                <img
-                  src={heroImage}
-                  alt={movie.title}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+                 <ImageWithLoader
+                   src={heroImage}
+                   alt={movie.title}
+                   className="absolute inset-0 h-full w-full object-cover"
+                   loaderSize={60}
+                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                   <span className="material-symbols-outlined text-7xl text-zinc-700">
@@ -339,11 +351,12 @@ export function MovieModal({
 
                   {posterImage ? (
                     <div className="hidden overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.35)] md:block md:w-28">
-                      <img
-                        src={posterImage}
-                        alt={`${movie.title} poster`}
-                        className="aspect-[2/3] h-full w-full object-cover"
-                      />
+                       <ImageWithLoader
+                         src={posterImage}
+                         alt={`${movie.title} poster`}
+                         className="aspect-[2/3] h-full w-full object-cover"
+                         loaderSize={40}
+                       />
                     </div>
                   ) : null}
                 </div>
@@ -373,11 +386,12 @@ export function MovieModal({
                         <div key={actor.id} className="group flex shrink-0 flex-col items-center gap-2">
                           <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-transparent transition group-hover:border-primary-container">
                             {actor.profile_path ? (
-                              <img
-                                src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
-                                alt={actor.name}
-                                className="h-full w-full object-cover"
-                              />
+                               <ImageWithLoader
+                                 src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
+                                 alt={actor.name}
+                                 className="h-full w-full object-cover"
+                                 loaderSize={24}
+                               />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-zinc-500">
                                 <span className="material-symbols-outlined">person</span>
@@ -416,13 +430,15 @@ export function MovieModal({
                   ) : extraInfo?.providers?.length ? (
                     <div className="flex flex-wrap gap-3">
                       {extraInfo.providers.map((provider) => (
-                        <img
-                          key={provider.provider_id}
-                          src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
-                          alt={provider.provider_name}
-                          title={provider.provider_name}
-                          className="h-11 w-11 rounded-xl border border-white/10 bg-surface-container object-cover shadow-lg"
-                        />
+                         <ImageWithLoader
+                           key={provider.provider_id}
+                           src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                           alt={provider.provider_name}
+                           title={provider.provider_name}
+                           className="h-full w-full rounded-xl border border-white/10 bg-surface-container object-cover shadow-lg"
+                           wrapperClassName="h-11 w-11 shrink-0"
+                           loaderSize={20}
+                         />
                       ))}
                     </div>
                   ) : (
@@ -433,66 +449,69 @@ export function MovieModal({
                 <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 pt-6">
                   <motion.button
                      whileTap={{ scale: 0.97 }}
+                     onClick={() => setShowTrailer(true)}
                      className="flex min-w-0 md:min-w-[180px] flex-1 items-center justify-center gap-2 rounded-xl md:rounded-2xl border border-white/10 bg-white/5 px-4 md:px-6 py-3 md:py-4 text-sm font-semibold text-white transition hover:bg-white/10 touch-manipulation"
                    >
                      <span className="material-symbols-outlined">movie</span>
                      Watch Trailer
                    </motion.button>
 
-                  <div className="relative">
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setShowRatingPicker(!showRatingPicker)}
-                      disabled={isRating}
-                      className={`flex h-12 md:h-14 min-w-12 md:min-w-14 items-center justify-center rounded-xl md:rounded-2xl border px-3 md:px-4 text-sm font-semibold transition disabled:opacity-60 touch-manipulation ${
-                        userRating
-                          ? "border-yellow-400 bg-yellow-400 text-black hover:bg-yellow-500"
-                          : "border-white/10 bg-surface-container-highest text-white hover:bg-white/10"
-                      }`}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={userRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+                  {isLoggedIn && (
+                    <div className="relative">
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setShowRatingPicker(!showRatingPicker)}
+                        disabled={isRating}
+                        className={`flex h-12 md:h-14 min-w-12 md:min-w-14 items-center justify-center rounded-xl md:rounded-2xl border px-3 md:px-4 text-sm font-semibold transition disabled:opacity-60 touch-manipulation ${
+                          userRating
+                            ? "border-yellow-400 bg-yellow-400 text-black hover:bg-yellow-500"
+                            : "border-white/10 bg-surface-container-highest text-white hover:bg-white/10"
+                        }`}
                       >
-                        {isRating ? "hourglass_empty" : "star"}
-                      </span>
-                      {userRating ? <span className="ml-1">{userRating}</span> : null}
-                    </motion.button>
-
-                    <AnimatePresence>
-                      {showRatingPicker ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.96 }}
-                          className="absolute bottom-full right-0 md:right-0 mb-3 flex w-[260px] md:w-[280px] flex-wrap gap-2 rounded-xl md:rounded-2xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur-xl"
+                        <span
+                          className="material-symbols-outlined"
+                          style={userRating ? { fontVariationSettings: "'FILL' 1" } : {}}
                         >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-                            <button
-                              key={value}
-                              onClick={() => handleRating(value)}
-                              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition ${
-                                userRating === value
-                                  ? "bg-yellow-400 text-black"
-                                  : "bg-zinc-800 text-white hover:bg-zinc-700"
-                              }`}
-                            >
-                              {value}
-                            </button>
-                          ))}
+                          {isRating ? "hourglass_empty" : "star"}
+                        </span>
+                        {userRating ? <span className="ml-1">{userRating}</span> : null}
+                      </motion.button>
 
-                          {userRating ? (
-                            <button
-                              onClick={handleRemoveRating}
-                              className="mt-2 flex h-10 w-full items-center justify-center rounded-xl bg-red-500/20 text-sm font-semibold text-red-300 transition hover:bg-red-500/30"
-                            >
-                              Remove Rating
-                            </button>
-                          ) : null}
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
+                      <AnimatePresence>
+                        {showRatingPicker ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                            className="absolute bottom-full right-0 md:right-0 mb-3 flex w-[260px] md:w-[280px] flex-wrap gap-2 rounded-xl md:rounded-2xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur-xl"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                              <button
+                                key={value}
+                                onClick={() => handleRating(value)}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition ${
+                                  userRating === value
+                                    ? "bg-yellow-400 text-black"
+                                    : "bg-zinc-800 text-white hover:bg-zinc-700"
+                                }`}
+                              >
+                                {value}
+                              </button>
+                            ))}
+
+                            {userRating ? (
+                              <button
+                                onClick={handleRemoveRating}
+                                className="mt-2 flex h-10 w-full items-center justify-center rounded-xl bg-red-500/20 text-sm font-semibold text-red-300 transition hover:bg-red-500/30"
+                              >
+                                Remove Rating
+                              </button>
+                            ) : null}
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -500,5 +519,15 @@ export function MovieModal({
         </div>
       ) : null}
     </AnimatePresence>
+
+    {movie && (
+      <TrailerPlayer
+        movieId={movie.id}
+        movieTitle={movie.title ?? ""}
+        isOpen={showTrailer}
+        onClose={() => setShowTrailer(false)}
+      />
+    )}
+    </>
   );
 }

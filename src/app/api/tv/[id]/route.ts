@@ -13,11 +13,7 @@ export async function GET(
     const requestedSeasonNumber = seasonNumberStr === 'auto' ? null : Number(seasonNumberStr);
 
     const session = await auth();
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const userId = session?.user?.id;
     const apiKey = process.env.TMDB_API_KEY;
 
     if (!apiKey) {
@@ -25,21 +21,24 @@ export async function GET(
     }
 
     // 1. Try to find the show in the database
-    let dbShow = await prisma.tvShow.findFirst({
-      where: {
-        userId,
-        OR: [
-          { id: id },
-          ...(isNaN(Number(id)) ? [] : [
-            { tmdbId: Number(id) },
-            { tvdbId: Number(id) }
-          ])
-        ]
-      },
-      include: {
-        episodes: true
-      }
-    });
+    let dbShow = null;
+    if (userId) {
+      dbShow = await prisma.tvShow.findFirst({
+        where: {
+          userId,
+          OR: [
+            { id: id },
+            ...(isNaN(Number(id)) ? [] : [
+              { tmdbId: Number(id) },
+              { tvdbId: Number(id) }
+            ])
+          ]
+        },
+        include: {
+          episodes: true
+        }
+      });
+    }
 
     let tmdbId: number | null = null;
     let tvdbId: number | null = null;

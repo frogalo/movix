@@ -38,6 +38,43 @@ async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: str
   return null;
 }
 
+async function resolveShowMetadata(show: any, apiKey: string) {
+  if (show.tmdbId && show.posterPath) {
+    return show;
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/find/${show.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const result = data.tv_results?.[0];
+      if (result) {
+        const tmdbId = result.id;
+        const posterPath = result.poster_path;
+        const backdropPath = result.backdrop_path;
+
+        const updated = await prisma.tvShow.update({
+          where: { id: show.id },
+          data: {
+            tmdbId,
+            posterPath,
+            backdropPath,
+          },
+          include: {
+            episodes: true
+          }
+        });
+        return updated;
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to resolve metadata for show tvdb:${show.tvdbId}`, err);
+  }
+  return show;
+}
+
 export default async function LibraryPage(props: {
   searchParams: Promise<{
     ratingsPage?: string;
@@ -102,6 +139,10 @@ export default async function LibraryPage(props: {
     },
   });
 
+  const resolvedDbShows = await Promise.all(
+    dbShows.map(show => resolveShowMetadata(show, apiKey))
+  );
+
   // 3. Fetch movies in watchlist (for Watch Next)
   const dbWatchlist = await prisma.watchlist.findMany({
     where: { userId },
@@ -114,17 +155,12 @@ export default async function LibraryPage(props: {
     )
   ).filter(Boolean);
 
-  // 4. Watch Next TV Shows (watched in last 6 months)
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
   const activeShows = await prisma.tvShow.findMany({
     where: {
       userId,
       episodes: {
         some: {
           isWatched: true,
-          watchedAt: { gte: sixMonthsAgo },
         },
       },
     },
@@ -133,17 +169,21 @@ export default async function LibraryPage(props: {
     },
   });
 
+  const resolvedActiveShows = await Promise.all(
+    activeShows.map(show => resolveShowMetadata(show, apiKey))
+  );
+
   // Compute next unwatched episode for each active show
   const watchNextEpisodes = (
     await Promise.all(
-      activeShows.map(async (show) => {
+      resolvedActiveShows.map(async (show) => {
         if (!show.tmdbId) return null;
         
         // Find latest watched episode (highest season, then highest episode number)
-        const watched = show.episodes.filter((e) => e.isWatched);
+        const watched = show.episodes.filter((e: any) => e.isWatched);
         if (watched.length === 0) return null;
 
-        watched.sort((a, b) => {
+        watched.sort((a: any, b: any) => {
           if (a.seasonNumber !== b.seasonNumber) return b.seasonNumber - a.seasonNumber;
           return b.episodeNumber - a.episodeNumber;
         });
@@ -177,29 +217,41 @@ export default async function LibraryPage(props: {
         const epMeta = seasonDetails?.episodes?.find((e: any) => e.episode_number === nextEpisode);
         if (!epMeta) return null; // No episode details available
 
-        // Exclude future episodes from Watch Next
+        // Determine if it's a future episode
         const airDateStr = epMeta.air_date || null;
+        let isFuture = false;
+        let daysUntil = 0;
         if (airDateStr) {
           const airDate = new Date(airDateStr);
           if (airDate.getTime() > Date.now()) {
-            return null; // Next episode hasn't aired yet
+            isFuture = true;
+            daysUntil = Math.ceil((airDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           }
+        }
+        
+        if (isFuture && daysUntil > 2) {
+          return null; // Next episode is too far away
         }
 
         // Calculate remaining unwatched episodes count
         const totalEpisodes = details.number_of_episodes || 0;
-        const watchedCount = show.episodes.filter(e => e.isWatched).length;
+        const watchedCount = show.episodes.filter((e: any) => e.isWatched).length;
         const remainingCount = Math.max(0, totalEpisodes - watchedCount - 1);
+        const episodeRunTime = details.episode_run_time?.[0] || 45;
+        const totalWatchTimeMinutes = watchedCount * episodeRunTime;
 
         // Find last watched date for the show
         const watchedDates = show.episodes
-          .filter((e) => e.isWatched && e.watchedAt)
-          .map((e) => new Date(e.watchedAt!).getTime());
+          .filter((e: any) => e.isWatched && e.watchedAt)
+          .map((e: any) => new Date(e.watchedAt!).getTime());
         const lastWatchedTime = watchedDates.length > 0 ? Math.max(...watchedDates) : 0;
 
-        // Check if the next episode is NEW (released in last 7 days)
+        // Check if the next episode is NEW (released in last 14 days or upcoming)
         const airDate = airDateStr ? new Date(airDateStr) : null;
-        const isNew = airDate && (Date.now() - airDate.getTime()) < (7 * 24 * 60 * 60 * 1000) && airDate.getTime() <= Date.now();
+        let isNew = false;
+        if (airDate) {
+           isNew = (Date.now() - airDate.getTime()) < (14 * 24 * 60 * 60 * 1000) || airDate.getTime() > Date.now();
+        }
 
         return {
           showId: show.id,
@@ -214,6 +266,10 @@ export default async function LibraryPage(props: {
           remainingCount,
           lastWatchedTime,
           isNew: !!isNew,
+          isFuture,
+          daysUntil,
+          totalEpisodesWatched: watchedCount,
+          totalWatchTimeMinutes,
         };
       })
     )
@@ -247,7 +303,7 @@ export default async function LibraryPage(props: {
       watchlistMovies={watchlistMovies}
       watchNextEpisodes={sortedWatchNextEpisodes}
       ratedMovies={ratedMovies as any}
-      trackedShows={dbShows as any}
+      trackedShows={resolvedDbShows as any}
       userLibrary={userLibraryMeta}
       ratingsPagination={{
         currentPage: ratingsPage,
