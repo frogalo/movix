@@ -6,7 +6,9 @@ import { SideNavBar } from "@/components/SideNavBar";
 import { BottomNavBar } from "@/components/BottomNavBar";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -54,6 +56,25 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
 
+  let showVerificationBanner = false;
+  let userEmail = "";
+  let userName = "";
+
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailVerified: true, email: true, name: true },
+    });
+    if (user && !user.emailVerified) {
+      const isGmail = user.email.toLowerCase().endsWith("@gmail.com");
+      if (!isGmail) {
+        showVerificationBanner = true;
+        userEmail = user.email;
+        userName = user.name ?? "there";
+      }
+    }
+  }
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -66,7 +87,16 @@ export default async function RootLayout({
           <SearchOverlay />
           <TopNavBar />
           <SideNavBar />
-          {children}
+          <div className="flex flex-col w-full min-h-screen">
+            {showVerificationBanner && session?.user?.id && (
+              <EmailVerificationBanner
+                userId={session.user.id}
+                email={userEmail}
+                name={userName}
+              />
+            )}
+            {children}
+          </div>
           <BottomNavBar />
         </AuthSessionProvider>
       </body>

@@ -39,6 +39,20 @@ function HomeContent() {
     if (savedTv !== null) setShowTv(savedTv === 'true');
   }, []);
 
+  // Redirect to default landing page on first load of the app session
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hasRedirected = sessionStorage.getItem("has_redirected_default");
+      if (!hasRedirected) {
+        sessionStorage.setItem("has_redirected_default", "true");
+        const defaultPage = localStorage.getItem("default_landing_page");
+        if (defaultPage && defaultPage !== "/") {
+          router.replace(defaultPage);
+        }
+      }
+    }
+  }, [router]);
+
   const toggleMovies = () => {
     setShowMovies(prev => {
       const newVal = !prev;

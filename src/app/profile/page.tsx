@@ -136,6 +136,8 @@ export default async function Profile() {
       user.name ?? user.email,
     )}`;
 
+  const isVerified = !!user.emailVerified || user.email.toLowerCase().endsWith("@gmail.com");
+
   return (
     <main className="relative min-h-screen w-full overflow-y-auto pb-24 md:ml-64 md:w-[calc(100%-16rem)] md:pb-12">
       <section className="relative overflow-hidden px-6 pb-12 pt-24 md:px-12 md:pt-16">
@@ -146,7 +148,7 @@ export default async function Profile() {
 
         <div className="relative z-10 mx-auto mt-4 md:mt-12 flex max-w-7xl flex-col items-center gap-6 md:gap-8 md:flex-row md:items-start">
           <div className="relative group">
-            <div className="relative z-10 h-32 w-32 overflow-hidden rounded-full border-2 border-yellow-400/30 bg-zinc-900 p-1 shadow-[0_0_30px_rgba(255,204,0,0.15)] md:h-40 md:w-40">
+            <div className="relative z-10 h-32 w-32 overflow-hidden rounded-full border-2 border-yellow-400/30 bg-zinc-950 p-1 shadow-[0_0_30px_rgba(255,204,0,0.15)] md:h-40 md:w-40">
               <ImageWithLoader
                 alt="User Avatar"
                 className="h-full w-full rounded-full object-cover grayscale-[20%] transition-all duration-500 group-hover:grayscale-0"
@@ -161,7 +163,24 @@ export default async function Profile() {
             <h2 className="mb-2 font-headline-lg text-[28px] md:text-headline-lg text-[#ffedc3] drop-shadow-lg">
               {user.name ?? "movix member"}
             </h2>
-            <p className="mb-1 md:mb-2 font-body-md md:font-body-lg text-[14px] md:text-body-lg text-zinc-400">{user.email}</p>
+            <div className="flex flex-col items-center md:items-start gap-2 mb-4">
+              <p className="font-body-md md:font-body-lg text-[14px] md:text-body-lg text-zinc-400">{user.email}</p>
+              {isVerified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+                  <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    verified
+                  </span>
+                  Verified Account
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
+                  <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    gpp_maybe
+                  </span>
+                  Pending Verification
+                </span>
+              )}
+            </div>
             <p className="mb-4 md:mb-6 max-w-2xl font-body-md md:font-body-lg text-[13px] md:text-body-lg text-zinc-400">
               Account active since {joinedDate}.
             </p>

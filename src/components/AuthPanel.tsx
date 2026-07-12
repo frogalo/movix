@@ -2,8 +2,10 @@
 
 import { useActionState, useState } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { loginAction, registerAction, type AuthFormState } from "@/app/login/actions";
 import { AuthSubmitButton } from "@/components/AuthSubmitButton";
+import { motion, AnimatePresence } from "framer-motion";
 
 const initialState: AuthFormState = {};
 
@@ -15,6 +17,24 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [loginState, loginFormAction] = useActionState(loginAction, initialState);
   const [registerState, registerFormAction] = useActionState(registerAction, initialState);
+
+  // State variables for live password validation
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const isPasswordLengthValid = password.length >= 8 && password.length <= 72;
+  const isPasswordMatching = password === confirmPassword;
+  const isPasswordCorrect = isPasswordLengthValid && isPasswordMatching;
+
+  const passwordError = password.length > 0 && !isPasswordLengthValid
+    ? "Password must be at least 8 characters."
+    : password.length > 72
+    ? "Password must be 72 characters or fewer."
+    : null;
+
+  const confirmPasswordError = confirmPassword.length > 0 && !isPasswordMatching
+    ? "Passwords do not match."
+    : null;
 
   return (
     <section className="w-full max-w-5xl rounded-2xl md:rounded-[2rem] border border-white/10 bg-zinc-950/80 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl md:p-10">
@@ -81,7 +101,15 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
                 />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-zinc-300">Password</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-zinc-300">Password</span>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-yellow-400 hover:text-yellow-300 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <input
                   name="password"
                   type="password"
@@ -125,9 +153,14 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
                   type="password"
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-white outline-none transition placeholder:text-zinc-500 focus:border-yellow-400/50"
                   required
                 />
+                {passwordError && (
+                  <p className="text-xs text-rose-400 font-medium mt-1">{passwordError}</p>
+                )}
               </label>
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-zinc-300">Confirm password</span>
@@ -136,12 +169,50 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
                   type="password"
                   autoComplete="new-password"
                   placeholder="Repeat the password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-white outline-none transition placeholder:text-zinc-500 focus:border-yellow-400/50"
                   required
                 />
+                {confirmPasswordError && (
+                  <p className="text-xs text-rose-400 font-medium mt-1">{confirmPasswordError}</p>
+                )}
               </label>
+
+              <div className="mt-3 space-y-1.5 bg-zinc-900/40 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={`material-symbols-outlined text-[16px] transition-colors duration-200 ${isPasswordLengthValid ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                    {isPasswordLengthValid ? 'check_circle' : 'circle'}
+                  </span>
+                  <span className={`transition-colors duration-200 ${isPasswordLengthValid ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                    Password is at least 8 characters
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={`material-symbols-outlined text-[16px] transition-colors duration-200 ${confirmPassword.length > 0 && isPasswordMatching ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                    {confirmPassword.length > 0 && isPasswordMatching ? 'check_circle' : 'circle'}
+                  </span>
+                  <span className={`transition-colors duration-200 ${confirmPassword.length > 0 && isPasswordMatching ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                    Passwords match
+                  </span>
+                </div>
+              </div>
+
               {registerState.error ? <p className="text-sm text-rose-300">{registerState.error}</p> : null}
-              <AuthSubmitButton label="Create Account" />
+              
+              <AnimatePresence>
+                {isPasswordCorrect && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, overflow: "hidden" }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="pt-2"
+                  >
+                    <AuthSubmitButton label="Create Account" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </form>
           )}
         </div>

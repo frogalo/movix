@@ -7,20 +7,22 @@ datasource db {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  name           String?
-  email          String          @unique
-  emailVerified  DateTime?       @map("email_verified")
-  image          String?
-  passwordHash   String?         @map("password_hash")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  accounts       Account[]
-  sessions       Session[]
-  authenticators Authenticator[]
-  watchlists     Watchlist[]
-  ratings        Rating[]
-  tvShows        TvShow[]
+  id                      String                   @id @default(cuid())
+  name                    String?
+  email                   String                   @unique
+  emailVerified           DateTime?                @map("email_verified")
+  image                   String?
+  passwordHash            String?                  @map("password_hash")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  accounts                Account[]
+  sessions                Session[]
+  authenticators          Authenticator[]
+  watchlists              Watchlist[]
+  ratings                 Rating[]
+  tvShows                 TvShow[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
 
   @@map("users")
 }
@@ -89,6 +91,28 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique @default(cuid())
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique @default(cuid())
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
 
 model Authenticator {
