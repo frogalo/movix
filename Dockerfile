@@ -17,10 +17,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
-RUN npx prisma generate
+# (Prisma config requires DATABASE_URL to be set, even during generation)
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" npx prisma generate
 
 # Build Next.js in standalone mode
-RUN npm run build
+# (Next build checks for AUTH_SECRET and DATABASE_URL)
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" AUTH_SECRET="build_time_secret_123456789" npm run build
 
 # ──────────────────────────────────────────────
 # Stage 3: Production runtime
