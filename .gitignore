@@ -40,3 +40,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 DESIGN.md
+
+# IDEs
+.idea
+.vscode
+
+# Prisma local database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Explicitly allow .env.example to be committed
+!.env.example
