@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImageWithLoader } from './ImageWithLoader';
+import { ImageWithLoader } from '@/components/common/ImageWithLoader';
 
 export type Movie = {
   id: number;

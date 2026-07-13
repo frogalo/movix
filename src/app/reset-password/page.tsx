@@ -3,7 +3,7 @@
 import { useActionState, use } from "react";
 import Link from "next/link";
 import { resetPasswordAction, type AuthFormState } from "@/app/login/actions";
-import { AuthSubmitButton } from "@/components/AuthSubmitButton";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 
 const initialState: AuthFormState = {};
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { ImageWithLoader } from './ImageWithLoader';
+import { ImageWithLoader } from '@/components/common/ImageWithLoader';
 
 export function SearchOverlay() {
   const { data: session } = useSession();
@@ -27,7 +27,7 @@ export function SearchOverlay() {
   }, [query]);
 
   useEffect(() => {
-    if (!debouncedQuery) {
+    if (!debouncedQuery || debouncedQuery.length < 3) {
       setResults([]);
       setIsSearching(false);
       return;
@@ -98,7 +98,9 @@ export function SearchOverlay() {
 
   const ResultsList = () => (
     <>
-      {results.length === 0 && !isSearching && query.length > 0 ? (
+      {query.length > 0 && query.length < 3 ? (
+        <div className="px-4 py-6 text-center text-zinc-500 text-sm">Please type at least 3 characters</div>
+      ) : results.length === 0 && !isSearching && query.length >= 3 ? (
         <div className="px-4 py-6 text-center text-zinc-500 text-sm">No results found for &ldquo;{query}&rdquo;</div>
       ) : (
         results.map((result) => (

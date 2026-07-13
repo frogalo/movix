@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { LibraryClient } from "@/components/LibraryClient";
+import { LibraryClient } from "@/components/library/LibraryClient";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,40 +39,61 @@ async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: str
 }
 
 async function resolveShowMetadata(show: any, apiKey: string) {
-  if (show.tmdbId && show.posterPath) {
-    return show;
-  }
+  let tmdbId = show.tmdbId;
+  let posterPath = show.posterPath;
+  let backdropPath = show.backdropPath;
 
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/find/${show.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      const result = data.tv_results?.[0];
-      if (result) {
-        const tmdbId = result.id;
-        const posterPath = result.poster_path;
-        const backdropPath = result.backdrop_path;
+  if (!tmdbId) {
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/find/${show.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const result = data.tv_results?.[0];
+        if (result) {
+          tmdbId = result.id;
+          posterPath = result.poster_path;
+          backdropPath = result.backdrop_path;
 
-        const updated = await prisma.tvShow.update({
-          where: { id: show.id },
-          data: {
-            tmdbId,
-            posterPath,
-            backdropPath,
-          },
-          include: {
-            episodes: true
-          }
-        });
-        return updated;
+          const updated = await prisma.tvShow.update({
+            where: { id: show.id },
+            data: {
+              tmdbId,
+              posterPath,
+              backdropPath,
+            },
+            include: {
+              episodes: true
+            }
+          });
+          show = updated;
+        }
       }
+    } catch (err) {
+      console.error(`Failed to resolve metadata for show tvdb:${show.tvdbId}`, err);
     }
-  } catch (err) {
-    console.error(`Failed to resolve metadata for show tvdb:${show.tvdbId}`, err);
   }
-  return show;
+
+  let totalEpisodes = 0;
+  if (tmdbId) {
+    try {
+      const details = await getTvShowDetails(tmdbId, apiKey);
+      if (details) {
+        totalEpisodes = details.number_of_episodes || 0;
+      }
+    } catch (err) {
+      console.error(`Failed to fetch TMDB details for tmdb:${tmdbId}`, err);
+    }
+  }
+
+  return {
+    ...show,
+    tmdbId,
+    posterPath,
+    backdropPath,
+    totalEpisodes,
+  };
 }
 
 export default async function LibraryPage(props: {
@@ -233,10 +254,31 @@ export default async function LibraryPage(props: {
           return null; // Next episode is too far away
         }
 
-        // Calculate remaining unwatched episodes count
-        const totalEpisodes = details.number_of_episodes || 0;
+        // Calculate remaining unwatched episodes count (excluding future/unaired ones)
         const watchedCount = show.episodes.filter((e: any) => e.isWatched).length;
-        const remainingCount = Math.max(0, totalEpisodes - watchedCount - 1);
+        const now = new Date();
+        const pastEpisodesCount = details.seasons
+          ?.filter((s: any) => s.season_number > 0 && s.season_number < nextSeason)
+          ?.reduce((sum: number, s: any) => sum + s.episode_count, 0) || 0;
+          
+        const airedEpisodesInCurrentSeason = seasonDetails?.episodes
+          ?.filter((ep: any) => {
+            if (!ep.air_date) return false;
+            const airDate = new Date(ep.air_date);
+            return airDate.getTime() <= now.getTime();
+          })?.length || 0;
+
+        const subsequentEpisodesCount = details.seasons
+          ?.filter((s: any) => s.season_number > nextSeason)
+          ?.reduce((sum: number, s: any) => {
+            if (!s.air_date) return sum;
+            const seasonAirDate = new Date(s.air_date);
+            if (seasonAirDate.getTime() > now.getTime()) return sum;
+            return sum + s.episode_count;
+          }, 0) || 0;
+          
+        const totalAiredEpisodes = pastEpisodesCount + airedEpisodesInCurrentSeason + subsequentEpisodesCount;
+        const remainingCount = isFuture ? 0 : Math.max(0, totalAiredEpisodes - watchedCount - 1);
         const episodeRunTime = details.episode_run_time?.[0] || 45;
         const totalWatchTimeMinutes = watchedCount * episodeRunTime;
 
@@ -285,7 +327,7 @@ export default async function LibraryPage(props: {
   // 5. Gather ratings & watchlist metadata for client modal checks
   const ratingsMeta = await prisma.rating.findMany({
     where: { userId },
-    select: { movieId: true, rating: true }
+    select: { movieId: true, rating: true, vote: true }
   });
   
   const watchlistMeta = await prisma.watchlist.findMany({
@@ -294,7 +336,7 @@ export default async function LibraryPage(props: {
   });
 
   const userLibraryMeta = {
-    ratings: ratingsMeta.map(r => ({ movieId: r.movieId, rating: r.rating })),
+    ratings: ratingsMeta.map(r => ({ movieId: r.movieId, rating: r.rating, vote: r.vote })),
     watchlists: watchlistMeta.map(w => ({ movieId: w.movieId }))
   };
 

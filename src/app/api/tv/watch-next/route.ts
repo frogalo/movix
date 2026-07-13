@@ -92,9 +92,32 @@ export async function GET(req: Request) {
       return NextResponse.json(null);
     }
 
-    const totalEpisodes = details.number_of_episodes || 0;
     const watchedCount = show.episodes.filter((e: any) => e.isWatched).length;
-    const remainingCount = Math.max(0, totalEpisodes - watchedCount - 1);
+
+    // Count only aired episodes (excluding future ones)
+    const now = new Date();
+    const pastEpisodesCount = details.seasons
+      ?.filter((s: any) => s.season_number > 0 && s.season_number < nextSeason)
+      ?.reduce((sum: number, s: any) => sum + s.episode_count, 0) || 0;
+      
+    const airedEpisodesInCurrentSeason = seasonDetails?.episodes
+      ?.filter((ep: any) => {
+        if (!ep.air_date) return false;
+        const airDate = new Date(ep.air_date);
+        return airDate.getTime() <= now.getTime();
+      })?.length || 0;
+
+    const subsequentEpisodesCount = details.seasons
+      ?.filter((s: any) => s.season_number > nextSeason)
+      ?.reduce((sum: number, s: any) => {
+        if (!s.air_date) return sum;
+        const seasonAirDate = new Date(s.air_date);
+        if (seasonAirDate.getTime() > now.getTime()) return sum;
+        return sum + s.episode_count;
+      }, 0) || 0;
+      
+    const totalAiredEpisodes = pastEpisodesCount + airedEpisodesInCurrentSeason + subsequentEpisodesCount;
+    const remainingCount = isFuture ? 0 : Math.max(0, totalAiredEpisodes - watchedCount - 1);
     const episodeRunTime = details.episode_run_time?.[0] || 45;
     const totalWatchTimeMinutes = watchedCount * episodeRunTime;
 

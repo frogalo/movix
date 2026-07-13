@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Movie } from "./TrendingMoviesCarousel";
 import { useSession } from "next-auth/react";
-import { ImageWithLoader } from "./ImageWithLoader";
-import { TrailerPlayer } from "./TrailerPlayer";
+import { ImageWithLoader } from "@/components/common/ImageWithLoader";
+import { TrailerPlayer } from "@/components/common/TrailerPlayer";
+import { VotingComponent } from "@/components/common/VotingComponent";
 
 interface HeroSectionProps {
   movie?: Movie | null;
@@ -19,7 +20,6 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
   const isLoggedIn = !!session?.user;
   const [isAdding, setIsAdding] = useState(false);
   const [isRating, setIsRating] = useState(false);
-  const [showRatingPicker, setShowRatingPicker] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
   if (!movie) {
@@ -42,6 +42,7 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
 
   const isInWatchlist = userLibrary?.watchlists?.some(w => w.movieId === movie.id);
   const userRating = userLibrary?.ratings?.find(r => r.movieId === movie.id)?.rating;
+  const userVote = userLibrary?.ratings?.find(r => r.movieId === movie.id)?.vote;
   const title = movie.title || movie.name || 'Unknown';
   const releaseDate = movie.release_date || movie.first_air_date || '';
 
@@ -62,16 +63,20 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
     }
   };
 
-  const handleRating = async (ratingVal: number) => {
+  const handleRating = async (ratingValue: number | null) => {
     if (!movie) return;
     setIsRating(true);
-    setShowRatingPicker(false);
+
     try {
-      await fetch('/api/rating', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ movieId: movie.id, rating: ratingVal })
-      });
+      if (ratingValue === null && !userVote) {
+        await fetch(`/api/rating?movieId=${movie.id}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/rating", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ movieId: movie.id, rating: ratingValue }),
+        });
+      }
       onLibraryUpdate();
     } catch (e) {
       console.error(e);
@@ -80,12 +85,20 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
     }
   };
 
-  const handleRemoveRating = async () => {
+  const handleVote = async (voteValue: string | null) => {
     if (!movie) return;
     setIsRating(true);
-    setShowRatingPicker(false);
+
     try {
-      await fetch(`/api/rating?movieId=${movie.id}`, { method: 'DELETE' });
+      if (voteValue === null && !userRating) {
+        await fetch(`/api/rating?movieId=${movie.id}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/rating", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ movieId: movie.id, vote: voteValue }),
+        });
+      }
       onLibraryUpdate();
     } catch (e) {
       console.error(e);
@@ -167,48 +180,14 @@ export function HeroSection({ movie, userLibrary, onLibraryUpdate, onTvShowClick
                   {isInWatchlist ? 'In Watchlist' : 'Watchlist'}
                 </motion.button>
 
-                <div className="relative">
-                  <motion.button 
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowRatingPicker(!showRatingPicker)}
-                    disabled={isRating}
-                    className={`h-[44px] md:h-[56px] px-4 md:px-6 flex gap-1.5 md:gap-2 items-center justify-center rounded-lg transition-colors border disabled:opacity-50 touch-manipulation ${userRating ? 'bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500' : 'glass-panel text-white hover:bg-white/10 border-white/20'}`}
-                  >
-                    <span className="material-symbols-outlined" style={userRating ? { fontVariationSettings: "'FILL' 1" } : {}}>{isRating ? 'hourglass_empty' : 'star'}</span>
-                    {userRating ? <span className="font-bold">{userRating}/10</span> : null}
-                  </motion.button>
-                  
-                  <AnimatePresence>
-                    {showRatingPicker && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 mb-3 bg-zinc-800 p-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-1 z-50 flex-wrap w-[220px] md:w-[280px]"
-                      >
-                        {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                          <motion.button 
-                            whileTap={{ scale: 0.9 }}
-                            key={n} 
-                            onClick={() => handleRating(n)}
-                            className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${userRating === n ? 'bg-yellow-400 text-black' : 'bg-zinc-700 text-white hover:bg-zinc-600'}`}
-                          >
-                            {n}
-                          </motion.button>
-                        ))}
-                        {userRating && (
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleRemoveRating}
-                            className="w-full mt-2 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                          >
-                            Remove Rating
-                          </motion.button>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <VotingComponent
+                  vote={userVote || null}
+                  rating={userRating || null}
+                  onVoteChange={handleVote}
+                  onRatingChange={handleRating}
+                  isActionInProgress={isRating}
+                  label="Movie"
+                />
               </>
             )
           )}

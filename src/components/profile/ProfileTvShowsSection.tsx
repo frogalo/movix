@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TvShowModal } from "./TvShowModal";
-import { ImageWithLoader } from "./ImageWithLoader";
+import { TvShowModal } from "@/components/tv/TvShowModal";
+import { ImageWithLoader } from "@/components/common/ImageWithLoader";
 
 type Episode = {
   id: string;
@@ -20,6 +20,8 @@ type TvShow = {
   backdropPath: string | null;
   episodes: Episode[];
   updatedAt: string;
+  vote: string | null;
+  rating: number | null;
 };
 
 interface ProfileTvShowsSectionProps {
@@ -206,9 +208,19 @@ export function ProfileTvShowsSection({ initialTvShows }: ProfileTvShowsSectionP
                   >
                     {show.title}
                   </h4>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    {watchedCount} episodes watched
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    <span>{watchedCount} watched</span>
+                    {show.rating && (
+                      <span className="flex items-center gap-0.5 text-amber-400">
+                        • ⭐ {show.rating}
+                      </span>
+                    )}
+                    {show.vote && (
+                      <span className="text-xs normal-case shrink-0" title={show.vote}>
+                        • {show.vote === 'love' ? '😍' : show.vote === 'good' ? '😄' : show.vote === 'wow' ? '😮' : show.vote === 'sad' ? '😢' : show.vote === 'angry' ? '😡' : show.vote === 'funny' ? '😂' : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );

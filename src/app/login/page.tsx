@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, isGoogleAuthEnabled } from "@/auth";
-import { AuthPanel } from "@/components/AuthPanel";
+import { AuthPanel } from "@/components/auth/AuthPanel";
 
 export default async function LoginPage() {
   const session = await auth();

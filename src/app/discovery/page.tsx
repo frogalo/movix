@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Movie } from "@/components/TrendingMoviesCarousel";
-import { ImageWithLoader } from "@/components/ImageWithLoader";
+import { Movie } from "@/components/home/TrendingMoviesCarousel";
+import { ImageWithLoader } from "@/components/common/ImageWithLoader";
 
 type ApiResponse = {
   page: number;

@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { loginAction, registerAction, type AuthFormState } from "@/app/login/actions";
-import { AuthSubmitButton } from "@/components/AuthSubmitButton";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { motion, AnimatePresence } from "framer-motion";
 
 const initialState: AuthFormState = {};

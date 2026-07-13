@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
-import { TopNavBar } from "@/components/TopNavBar";
-import { SideNavBar } from "@/components/SideNavBar";
-import { BottomNavBar } from "@/components/BottomNavBar";
-import { AuthSessionProvider } from "@/components/AuthSessionProvider";
-import { SearchOverlay } from "@/components/SearchOverlay";
-import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
+import { TopNavBar } from "@/components/navigation/TopNavBar";
+import { SideNavBar } from "@/components/navigation/SideNavBar";
+import { BottomNavBar } from "@/components/navigation/BottomNavBar";
+import { AuthSessionProvider } from "@/components/auth/AuthSessionProvider";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 

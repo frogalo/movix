@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const userId = session.user.id;
-    const { tvdbId, tmdbId, imdbId, title, status, isFavorite, posterPath, backdropPath } = await req.json();
+    const { tvdbId, tmdbId, imdbId, title, status, isFavorite, posterPath, backdropPath, vote, rating } = await req.json();
 
     if (!tvdbId || !title) {
       return new NextResponse('TVDB ID and Title are required', { status: 400 });
@@ -62,6 +62,8 @@ export async function POST(req: Request) {
         ...(isFavorite !== undefined && { isFavorite: Boolean(isFavorite) }),
         ...(posterPath !== undefined && { posterPath }),
         ...(backdropPath !== undefined && { backdropPath }),
+        ...(vote !== undefined && { vote: vote === null ? null : String(vote) }),
+        ...(rating !== undefined && { rating: rating === null ? null : Number(rating) }),
       },
       create: {
         userId,
@@ -73,6 +75,8 @@ export async function POST(req: Request) {
         isFavorite: isFavorite || false,
         posterPath: posterPath || null,
         backdropPath: backdropPath || null,
+        vote: vote || null,
+        rating: rating ? Number(rating) : null,
       }
     });
 

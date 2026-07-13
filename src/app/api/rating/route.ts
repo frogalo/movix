@@ -9,9 +9,9 @@ export async function POST(req: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { movieId, rating } = await req.json();
-    if (!movieId || rating === undefined) {
-      return new NextResponse('Movie ID and rating are required', { status: 400 });
+    const { movieId, rating, vote } = await req.json();
+    if (!movieId) {
+      return new NextResponse('Movie ID is required', { status: 400 });
     }
 
     const newRating = await prisma.rating.upsert({
@@ -22,12 +22,14 @@ export async function POST(req: Request) {
         },
       },
       update: {
-        rating: Number(rating),
+        ...(rating !== undefined && { rating: rating === null ? null : Number(rating) }),
+        ...(vote !== undefined && { vote: vote === null ? null : String(vote) }),
       },
       create: {
         userId: session.user.id,
         movieId: Number(movieId),
-        rating: Number(rating),
+        rating: rating ? Number(rating) : null,
+        vote: vote || null,
       },
     });
 

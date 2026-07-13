@@ -42,7 +42,8 @@ model Rating {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   movieId   Int
-  rating    Int
+  rating    Int?
+  vote      String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -141,6 +142,8 @@ model TvShow {
   isFavorite  Boolean     @default(false) @map("is_favorite")
   posterPath  String?     @map("poster_path")
   backdropPath String?    @map("backdrop_path")
+  vote         String?     // emotional reaction or rating (e.g. funny, sad, wow, good, etc.)
+  rating       Int?        // rating (e.g. 1-10)
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   

@@ -20,9 +20,12 @@ export async function POST(req: Request) {
       isWatched,   // Boolean
       rating,      // Number (1-10 or null)
       vote,        // String (reaction or null)
+      bulk,        // undefined, "season", or "series"
+      episodeCount, // number (optional)
+      seasonsData, // array of { seasonNumber, episodeCount } (optional)
     } = await req.json();
 
-    if ((!tvdbId && !tmdbId) || seasonNumber === undefined || episodeNumber === undefined) {
+    if ((!tvdbId && !tmdbId) || (bulk === undefined && (seasonNumber === undefined || episodeNumber === undefined))) {
       return new NextResponse('Missing required fields: show identifier, season number, episode number', { status: 400 });
     }
 
@@ -89,6 +92,101 @@ export async function POST(req: Request) {
           status: 'watching',
         },
       });
+    }
+
+    if (bulk === "season") {
+      if (seasonNumber === undefined || !episodeCount) {
+        return new NextResponse('Missing seasonNumber or episodeCount for bulk season operation', { status: 400 });
+      }
+
+      const upsertPromises = [];
+      for (let epNum = 1; epNum <= Number(episodeCount); epNum++) {
+        const dummyEpisodeTvdbId = (show.tvdbId % 100000) * 10000 + Number(seasonNumber) * 100 + epNum;
+        upsertPromises.push(
+          prisma.tvEpisode.upsert({
+            where: {
+              showId_seasonNumber_episodeNumber: {
+                showId: show.id,
+                seasonNumber: Number(seasonNumber),
+                episodeNumber: epNum,
+              },
+            },
+            update: {
+              isWatched: Boolean(isWatched),
+              ...(isWatched === true && { watchedAt: new Date() }),
+              ...(isWatched === false && { watchedAt: null }),
+            },
+            create: {
+              showId: show.id,
+              tvdbId: dummyEpisodeTvdbId,
+              seasonNumber: Number(seasonNumber),
+              episodeNumber: epNum,
+              isWatched: Boolean(isWatched),
+              watchedAt: isWatched === false ? null : new Date(),
+            },
+          })
+        );
+      }
+
+      await Promise.all(upsertPromises);
+
+      await prisma.tvShow.update({
+        where: { id: show.id },
+        data: { updatedAt: new Date() },
+      });
+
+      return NextResponse.json({ success: true, count: episodeCount });
+    }
+
+    if (bulk === "series") {
+      if (!seasonsData || !Array.isArray(seasonsData)) {
+        return new NextResponse('Missing seasonsData array for bulk series operation', { status: 400 });
+      }
+
+      const upsertPromises = [];
+      let totalCount = 0;
+      for (const s of seasonsData) {
+        const sNum = Number(s.seasonNumber);
+        const epCount = Number(s.episodeCount);
+        totalCount += epCount;
+        
+        for (let epNum = 1; epNum <= epCount; epNum++) {
+          const dummyEpisodeTvdbId = (show.tvdbId % 100000) * 10000 + sNum * 100 + epNum;
+          upsertPromises.push(
+            prisma.tvEpisode.upsert({
+              where: {
+                showId_seasonNumber_episodeNumber: {
+                  showId: show.id,
+                  seasonNumber: sNum,
+                  episodeNumber: epNum,
+                },
+              },
+              update: {
+                isWatched: Boolean(isWatched),
+                ...(isWatched === true && { watchedAt: new Date() }),
+                ...(isWatched === false && { watchedAt: null }),
+              },
+              create: {
+                showId: show.id,
+                tvdbId: dummyEpisodeTvdbId,
+                seasonNumber: sNum,
+                episodeNumber: epNum,
+                isWatched: Boolean(isWatched),
+                watchedAt: isWatched === false ? null : new Date(),
+              },
+            })
+          );
+        }
+      }
+
+      await Promise.all(upsertPromises);
+
+      await prisma.tvShow.update({
+        where: { id: show.id },
+        data: { updatedAt: new Date() },
+      });
+
+      return NextResponse.json({ success: true, count: totalCount });
     }
 
     // 2. Determine episode TVDB ID

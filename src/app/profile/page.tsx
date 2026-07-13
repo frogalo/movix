@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { SignOutButton } from "@/components/SignOutButton";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { prisma } from "@/lib/prisma";
-import { ImageWithLoader } from "@/components/ImageWithLoader";
-import { ProfileActions } from "@/components/ProfileActions";
+import { ImageWithLoader } from "@/components/common/ImageWithLoader";
+import { ProfileActions } from "@/components/profile/ProfileActions";
 
 export default async function Profile() {
   const session = await auth();

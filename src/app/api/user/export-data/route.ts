@@ -47,6 +47,8 @@ export async function GET() {
         isFavorite: s.isFavorite,
         posterPath: s.posterPath,
         backdropPath: s.backdropPath,
+        vote: s.vote,
+        rating: s.rating,
         episodes: s.episodes.map(e => ({
           tvdbId: e.tvdbId,
           seasonNumber: e.seasonNumber,

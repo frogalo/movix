@@ -223,6 +223,8 @@ async function buildResponse(
       title: dbShow.title,
       status: dbShow.status,
       isFavorite: dbShow.isFavorite,
+      vote: dbShow.vote || null,
+      rating: dbShow.rating || null,
       totalEpisodesTracked,
     } : null,
     details: {

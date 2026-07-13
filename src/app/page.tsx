@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { HeroSection } from "@/components/HeroSection";
-import { TrendingMoviesCarousel, Movie } from "@/components/TrendingMoviesCarousel";
-import { MovieModal } from "@/components/MovieModal";
-import { TvShowModal } from "@/components/TvShowModal";
+import { HeroSection } from "@/components/home/HeroSection";
+import { TrendingMoviesCarousel, Movie } from "@/components/home/TrendingMoviesCarousel";
+import { MovieModal } from "@/components/movie/MovieModal";
+import { TvShowModal } from "@/components/tv/TvShowModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 type ApiResponse = {
