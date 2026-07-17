@@ -8,9 +8,10 @@ interface RatingsSectionProps {
     currentPage: number;
     totalPages: number;
     totalItems: number;
-  };
+  } | null;
   setSelectedMovie: (movie: any) => void;
   setPage: (type: "ratings" | "shows", pageNum: number) => void;
+  loading?: boolean;
 }
 
 export function RatingsSection({
@@ -18,6 +19,7 @@ export function RatingsSection({
   ratingsPagination,
   setSelectedMovie,
   setPage,
+  loading = false,
 }: RatingsSectionProps) {
   return (
     <div>
@@ -29,11 +31,20 @@ export function RatingsSection({
           Your Movie Ratings
         </h3>
         <span className="font-label-sm text-[12px] font-bold uppercase text-yellow-400">
-          {ratingsPagination.totalItems} Ratings
+          {loading ? "Loading..." : `${ratingsPagination?.totalItems || 0} Ratings`}
         </span>
       </div>
 
-      {ratedMovies.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col gap-2 rounded-2xl bg-zinc-900/40 p-2.5 border border-white/5 animate-pulse">
+              <div className="aspect-[2/3] w-full bg-zinc-850 rounded-xl" />
+              <div className="h-3 bg-zinc-850 rounded w-2/3 mx-auto mt-1" />
+            </div>
+          ))}
+        </div>
+      ) : ratedMovies.length === 0 ? (
         <div className="glass-panel rounded-2xl p-8 text-center text-zinc-400">
           <span className="material-symbols-outlined text-4xl mb-2 opacity-50">star_rate</span>
           <p>You haven't rated any movies yet.</p>
@@ -71,7 +82,7 @@ export function RatingsSection({
             ))}
           </div>
 
-          {ratingsPagination.totalPages > 1 && (
+          {ratingsPagination && ratingsPagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <button
                 disabled={ratingsPagination.currentPage === 1}

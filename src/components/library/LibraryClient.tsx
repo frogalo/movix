@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MovieModal } from "@/components/movie/MovieModal";
 import { TvShowModal } from "@/components/tv/TvShowModal";
@@ -15,74 +15,154 @@ export type LibraryEntry = {
 };
 
 type LibraryClientProps = {
-  watchlistMovies: any[];
-  watchNextEpisodes: any[];
-  ratedMovies: any[];
-  trackedShows: any[];
   userLibrary: { watchlists: LibraryEntry[]; ratings: LibraryEntry[] };
-  ratingsPagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-  };
-  showsPagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-  };
 };
 
 export function LibraryClient({
-  watchlistMovies,
-  watchNextEpisodes,
-  ratedMovies,
-  trackedShows,
   userLibrary,
-  ratingsPagination,
-  showsPagination,
 }: LibraryClientProps) {
   const router = useRouter();
   const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const [selectedTvShowId, setSelectedTvShowId] = useState<number | null>(null);
   const [isMarking, setIsMarking] = useState<string | null>(null);
   const [finishedShows, setFinishedShows] = useState<any[]>([]);
-  const [localWatchNext, setLocalWatchNext] = useState<any[]>(watchNextEpisodes);
-  const [localShows, setLocalShows] = useState<any[]>(trackedShows);
+
+  const mainRef = useRef<HTMLElement>(null);
+  const scrollPosRef = useRef<number>(0);
+  const [shouldRestoreScroll, setShouldRestoreScroll] = useState(false);
+
+  // Client states for async loaded sections
+  const [watchlistMovies, setWatchlistMovies] = useState<any[]>([]);
+  const [localWatchNext, setLocalWatchNext] = useState<any[]>([]);
+  const [ratedMovies, setRatedMovies] = useState<any[]>([]);
+  const [localShows, setLocalShows] = useState<any[]>([]);
+
+  const [isWatchNextLoading, setIsWatchNextLoading] = useState(true);
+  const [isRatingsLoading, setIsRatingsLoading] = useState(true);
+  const [isShowsLoading, setIsShowsLoading] = useState(true);
+
+  const [ratingsPagination, setRatingsPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  } | null>(null);
+
+  const [showsPagination, setShowsPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  } | null>(null);
+
+  const [ratingsPage, setRatingsPage] = useState(1);
   const [showsPage, setShowsPage] = useState(1);
   const [isLoadingMoreShows, setIsLoadingMoreShows] = useState(false);
-  const [hasMoreShows, setHasMoreShows] = useState(showsPagination.currentPage < showsPagination.totalPages);
+  const [hasMoreShows, setHasMoreShows] = useState(false);
   const [watchNextLimit, setWatchNextLimit] = useState(5);
 
   const filteredWatchlistMovies = watchlistMovies.filter(
     (m) => !userLibrary.ratings.some((r) => r.movieId === m.id)
   );
 
-  useEffect(() => {
-    setLocalShows(trackedShows);
-    setShowsPage(1);
-    setHasMoreShows(showsPagination.currentPage < showsPagination.totalPages);
-  }, [trackedShows, showsPagination]);
-
-  useEffect(() => {
-    setLocalWatchNext(watchNextEpisodes);
-  }, [watchNextEpisodes]);
-
-  useEffect(() => {
-    const handleWindowScroll = () => {
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const clientHeight = window.innerHeight;
-      if (scrollHeight - scrollTop <= clientHeight + 250) {
-        loadMoreShows();
+  // Helper fetch functions
+  const fetchWatchNext = useCallback(async () => {
+    try {
+      setIsWatchNextLoading(true);
+      const res = await fetch("/api/user/library/watch-next");
+      if (res.ok) {
+        const data = await res.json();
+        setWatchlistMovies(data.watchlistMovies || []);
+        setLocalWatchNext(data.watchNextEpisodes || []);
       }
-    };
-    window.addEventListener("scroll", handleWindowScroll);
-    return () => window.removeEventListener("scroll", handleWindowScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMoreShows, isLoadingMoreShows, showsPage]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsWatchNextLoading(false);
+    }
+  }, []);
 
+  const fetchRatings = useCallback(async (page: number) => {
+    try {
+      setIsRatingsLoading(true);
+      const res = await fetch(`/api/user/library/ratings?page=${page}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRatedMovies(data.ratedMovies || []);
+        setRatingsPagination({
+          currentPage: data.ratedMovies.length > 0 ? page : 0,
+          totalPages: data.totalPages,
+          totalItems: data.totalItems,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRatingsLoading(false);
+    }
+  }, []);
+
+  const fetchShows = useCallback(async () => {
+    try {
+      setIsShowsLoading(true);
+      const res = await fetch(`/api/user/library/shows?page=1`);
+      if (res.ok) {
+        const data = await res.json();
+        setLocalShows(data.shows || []);
+        setShowsPage(1);
+        setShowsPagination({
+          currentPage: 1,
+          totalPages: data.totalPages,
+          totalItems: data.totalItems,
+        });
+        setHasMoreShows(1 < data.totalPages);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsShowsLoading(false);
+    }
+  }, []);
+
+  // On mount
+  useEffect(() => {
+    fetchWatchNext();
+    fetchShows();
+  }, [fetchWatchNext, fetchShows]);
+
+  // When ratingsPage changes
+  useEffect(() => {
+    fetchRatings(ratingsPage);
+  }, [ratingsPage, fetchRatings]);
+
+  // Capture scroll position when a modal is opened
+  useEffect(() => {
+    if (selectedTvShowId || selectedMovie) {
+      if (mainRef.current) {
+        scrollPosRef.current = mainRef.current.scrollTop;
+      }
+    }
+  }, [selectedTvShowId, selectedMovie]);
+
+  // Flag that scroll needs restoration when modal is closed
+  useEffect(() => {
+    if (!selectedTvShowId && !selectedMovie && scrollPosRef.current > 0) {
+      setShouldRestoreScroll(true);
+    }
+  }, [selectedTvShowId, selectedMovie]);
+
+  // Restore scroll position once updates are completed
+  useEffect(() => {
+    if (shouldRestoreScroll && !isWatchNextLoading && !isRatingsLoading && !isShowsLoading) {
+      if (mainRef.current) {
+        mainRef.current.scrollTop = scrollPosRef.current;
+        scrollPosRef.current = 0;
+      }
+      setShouldRestoreScroll(false);
+    }
+  }, [shouldRestoreScroll, isWatchNextLoading, isRatingsLoading, isShowsLoading]);
+
+  // Load more tracked shows for infinite scroll
   const loadMoreShows = async () => {
-    if (isLoadingMoreShows || !hasMoreShows) return;
+    if (isLoadingMoreShows || !hasMoreShows || !showsPagination) return;
     setIsLoadingMoreShows(true);
     const nextPage = showsPage + 1;
     try {
@@ -95,6 +175,11 @@ export function LibraryClient({
         });
         setShowsPage(nextPage);
         setHasMoreShows(nextPage < data.totalPages);
+        setShowsPagination({
+          currentPage: nextPage,
+          totalPages: data.totalPages,
+          totalItems: data.totalItems,
+        });
       }
     } catch (e) {
       console.error(e);
@@ -103,8 +188,26 @@ export function LibraryClient({
     }
   };
 
+  // Scroll listener for infinite scroll
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight;
+      if (scrollHeight - scrollTop <= clientHeight + 250) {
+        loadMoreShows();
+      }
+    };
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMoreShows, isLoadingMoreShows, showsPage, showsPagination]);
+
   const handleLibraryUpdate = () => {
     router.refresh();
+    fetchWatchNext();
+    fetchRatings(ratingsPage);
+    fetchShows();
   };
 
   const handleMarkWatched = async (ep: any) => {
@@ -149,13 +252,16 @@ export function LibraryClient({
   };
 
   const setPage = (type: "ratings" | "shows", pageNum: number) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set(`${type}Page`, pageNum.toString());
-    router.push(`/library?${params.toString()}`);
+    if (type === "ratings") {
+      setRatingsPage(pageNum);
+    } else {
+      setShowsPage(pageNum);
+    }
   };
 
   return (
     <main
+      ref={mainRef}
       onScroll={(e) => {
         const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
         if (scrollHeight - scrollTop <= clientHeight + 250) {
@@ -175,6 +281,7 @@ export function LibraryClient({
           handleMarkWatched={handleMarkWatched}
           setSelectedTvShowId={setSelectedTvShowId}
           setSelectedMovie={setSelectedMovie}
+          loading={isWatchNextLoading}
         />
 
         <RatingsSection
@@ -182,6 +289,7 @@ export function LibraryClient({
           ratingsPagination={ratingsPagination}
           setSelectedMovie={setSelectedMovie}
           setPage={setPage}
+          loading={isRatingsLoading}
         />
 
         <TrackedShowsSection
@@ -189,6 +297,7 @@ export function LibraryClient({
           showsPagination={showsPagination}
           isLoadingMoreShows={isLoadingMoreShows}
           setSelectedTvShowId={setSelectedTvShowId}
+          loading={isShowsLoading}
         />
       </section>
 

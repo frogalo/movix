@@ -8,6 +8,7 @@ export function SideNavBar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const landingHref = session?.user ? "/library" : "/";
+  const homeHref = session?.user ? "/trending" : "/";
 
   const isActive = (path: string) =>
     path === "/" ? pathname === path : pathname.startsWith(path);
@@ -27,7 +28,7 @@ export function SideNavBar() {
         </Link>
       </div>
       <nav className="flex-1 px-4 space-y-2 font-['Space_Grotesk'] font-medium">
-        <Link href="/" className={`${baseLinkStyle} ${isActive('/') ? activeLinkStyle : inactiveLinkStyle}`}>
+        <Link href={homeHref} className={`${baseLinkStyle} ${isActive(homeHref) ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">movie_filter</span>
           Home
         </Link>

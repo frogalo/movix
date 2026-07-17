@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export function BottomNavBar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const homeHref = session?.user ? "/trending" : "/";
+
   const isActive = (path: string) =>
     path === "/" ? pathname === path : pathname.startsWith(path);
 
@@ -15,8 +19,8 @@ export function BottomNavBar() {
 
   return (
     <nav className="md:hidden fixed bottom-0 w-full bg-zinc-950/70 backdrop-blur-2xl border-t border-white/10 z-[60] flex justify-around items-center px-2 pt-2 pb-2 safe-bottom">
-      <Link href="/" className={linkClass("/")}>
-        <span className="material-symbols-outlined text-[22px]" style={isActive("/") ? { fontVariationSettings: "'FILL' 1" } : {}}>movie_filter</span>
+      <Link href={homeHref} className={linkClass(homeHref)}>
+        <span className="material-symbols-outlined text-[22px]" style={isActive(homeHref) ? { fontVariationSettings: "'FILL' 1" } : {}}>movie_filter</span>
         <span className="text-[10px] font-semibold tracking-wide">Home</span>
       </Link>
       {/* <Link href="/discovery" className={linkClass("/discovery")}>

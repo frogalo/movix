@@ -12,6 +12,7 @@ interface WatchNextSectionProps {
   handleMarkWatched: (ep: any) => Promise<void>;
   setSelectedTvShowId: (id: number) => void;
   setSelectedMovie: (movie: any) => void;
+  loading?: boolean;
 }
 
 export function WatchNextSection({
@@ -24,6 +25,7 @@ export function WatchNextSection({
   handleMarkWatched,
   setSelectedTvShowId,
   setSelectedMovie,
+  loading = false,
 }: WatchNextSectionProps) {
   return (
     <div>
@@ -36,7 +38,38 @@ export function WatchNextSection({
         </h3>
       </div>
 
-      {localWatchNext.length === 0 && filteredWatchlistMovies.length === 0 ? (
+      {loading ? (
+        <div className="grid min-w-0 max-w-full gap-6 lg:grid-cols-12">
+          {/* TV Watch Next Skeleton */}
+          <div className="space-y-4 w-full min-w-0 lg:col-span-8">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">TV Shows (New Episodes)</h4>
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 h-[110px] md:h-[130px] animate-pulse bg-zinc-900/40">
+                  <div className="w-28 md:w-44 shrink-0 bg-zinc-850" />
+                  <div className="flex-1 p-3 md:p-5 flex flex-col justify-center space-y-3">
+                    <div className="h-4 bg-zinc-850 rounded w-1/3" />
+                    <div className="h-3 bg-zinc-850 rounded w-2/3" />
+                    <div className="h-3 bg-zinc-850 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Movie Watchlist Skeleton */}
+          <div className="space-y-4 w-full min-w-0 lg:col-span-4">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">Watchlist Movies</h4>
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex flex-col gap-2 rounded-2xl bg-zinc-900/40 p-2 border border-white/5 animate-pulse">
+                  <div className="aspect-[2/3] w-full bg-zinc-850 rounded-xl" />
+                  <div className="h-3 bg-zinc-850 rounded w-2/3 mx-auto mt-1" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : localWatchNext.length === 0 && filteredWatchlistMovies.length === 0 ? (
         <div className="glass-panel rounded-2xl p-8 text-center text-zinc-400">
           <span className="material-symbols-outlined text-4xl mb-2 opacity-50">smart_display</span>
           <p>Nothing in Watch Next. Start watching TV shows or save movies to watchlist!</p>

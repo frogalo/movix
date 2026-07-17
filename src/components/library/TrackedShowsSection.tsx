@@ -8,9 +8,10 @@ interface TrackedShowsSectionProps {
     currentPage: number;
     totalPages: number;
     totalItems: number;
-  };
+  } | null;
   isLoadingMoreShows: boolean;
   setSelectedTvShowId: (id: number) => void;
+  loading?: boolean;
 }
 
 export function TrackedShowsSection({
@@ -18,6 +19,7 @@ export function TrackedShowsSection({
   showsPagination,
   isLoadingMoreShows,
   setSelectedTvShowId,
+  loading = false,
 }: TrackedShowsSectionProps) {
   return (
     <div>
@@ -29,11 +31,26 @@ export function TrackedShowsSection({
           Tracked TV Shows
         </h3>
         <span className="font-label-sm text-[12px] font-bold uppercase text-purple-400">
-          {showsPagination.totalItems} Shows
+          {loading ? "Loading..." : `${showsPagination?.totalItems || 0} Shows`}
         </span>
       </div>
 
-      {localShows.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-2xl bg-zinc-900/40 border border-white/5 animate-pulse">
+              <div className="aspect-[2/3] w-full bg-zinc-850" />
+              <div className="flex flex-col gap-2 p-3 pt-2 pb-3.5">
+                <div className="h-3 bg-zinc-850 rounded w-2/3" />
+                <div className="flex gap-2">
+                  <div className="h-4 bg-zinc-850 rounded-lg w-12" />
+                  <div className="h-4 bg-zinc-850 rounded-lg w-12" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : localShows.length === 0 ? (
         <div className="glass-panel rounded-2xl p-8 text-center text-zinc-400">
           <span className="material-symbols-outlined text-4xl mb-2 opacity-50">tv</span>
           <p>You are not tracking any TV shows yet.</p>
