@@ -15,6 +15,60 @@ interface WatchNextSectionProps {
   loading?: boolean;
 }
 
+function getReleaseStatus(releaseDateStr?: string) {
+  if (!releaseDateStr) return null;
+
+  const parts = releaseDateStr.split("-");
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const today = new Date();
+  const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const releaseDate = new Date(year, month, day);
+
+  const diffTime = releaseDate.getTime() - todayLocal.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return {
+      text: "premiere",
+      type: "premiere"
+    };
+  } else if (diffDays > 0) {
+    if (diffDays < 10) {
+      return {
+        text: `in ${diffDays} day${diffDays > 1 ? 's' : ''}`,
+        type: "soon"
+      };
+    } else {
+      const formattedDate = releaseDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+      return {
+        text: formattedDate,
+        type: "future"
+      };
+    }
+  } else {
+    const pastDays = Math.abs(diffDays);
+    if (pastDays < 10) {
+      return {
+        text: `premiere ${pastDays} day${pastDays > 1 ? 's' : ''} ago`,
+        type: "recent"
+      };
+    } else {
+      return {
+        text: "available",
+        type: "available"
+      };
+    }
+  }
+}
+
 export function WatchNextSection({
   localWatchNext,
   finishedShows,
@@ -230,30 +284,51 @@ export function WatchNextSection({
             <div className={`space-y-4 min-w-0 w-full ${localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
               <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">Watchlist Movies</h4>
               <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:mx-0 md:px-0">
-                {filteredWatchlistMovies.map((m) => (
-                  <div
-                    key={m.id}
-                    onClick={() => setSelectedMovie(m)}
-                    className="w-28 md:w-full shrink-0 md:shrink flex flex-col gap-2 cursor-pointer group touch-manipulation"
-                  >
-                    <div className="w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-xl relative">
-                      {m.poster_path ? (
-                        <ImageWithLoader
-                          src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
-                          alt={m.title}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                          <span className="material-symbols-outlined">movie</span>
-                        </div>
-                      )}
+                {filteredWatchlistMovies.map((m) => {
+                  const status = getReleaseStatus(m.release_date);
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setSelectedMovie(m)}
+                      className="w-28 md:w-full shrink-0 md:shrink flex flex-col gap-1 cursor-pointer group touch-manipulation"
+                    >
+                      <div className="w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-xl relative">
+                        {m.poster_path ? (
+                          <ImageWithLoader
+                            src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
+                            alt={m.title}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                            <span className="material-symbols-outlined">movie</span>
+                          </div>
+                        )}
+
+                        {status && (
+                          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent h-10 pointer-events-none" />
+                            <div className="relative flex items-center justify-center gap-1.5 py-1.5 px-2">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                status.type === 'premiere' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
+                                status.type === 'soon' ? 'bg-[#00daf3] shadow-[0_0_8px_#00daf3]' :
+                                status.type === 'future' ? 'bg-zinc-400' :
+                                status.type === 'recent' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
+                                'bg-zinc-500'
+                              } ${status.type === 'premiere' ? 'animate-pulse' : ''}`} />
+                              <span className="text-[8px] font-extrabold tracking-widest uppercase text-white/95 drop-shadow">
+                                {status.text}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <h5 className="text-white text-xs font-semibold truncate px-1 group-hover:text-yellow-400" title={m.title}>
+                        {m.title}
+                      </h5>
                     </div>
-                    <h5 className="text-white text-xs font-semibold truncate px-1 group-hover:text-yellow-400" title={m.title}>
-                      {m.title}
-                    </h5>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
