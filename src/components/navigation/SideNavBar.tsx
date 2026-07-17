@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export function SideNavBar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const landingHref = session?.user ? "/library" : "/";
 
   const isActive = (path: string) =>
     path === "/" ? pathname === path : pathname.startsWith(path);
@@ -16,9 +19,12 @@ export function SideNavBar() {
   return (
     <aside className="hidden md:flex flex-col h-full py-8 space-y-8 bg-zinc-900/80 backdrop-blur-2xl w-64 border-r border-white/5 shadow-2xl fixed left-0 top-0 z-40">
       <div className="px-6 pb-8 border-b border-white/10">
-        <div className="text-3xl font-black italic tracking-tighter text-yellow-400 drop-shadow-[0_0_8px_rgba(255,204,0,0.5)] font-['Space_Grotesk']">
+        <Link 
+          href={landingHref} 
+          className="text-3xl font-black italic tracking-tighter text-yellow-400 drop-shadow-[0_0_8px_rgba(255,204,0,0.5)] font-['Space_Grotesk'] hover:opacity-80 transition-opacity block"
+        >
           movix
-        </div>
+        </Link>
       </div>
       <nav className="flex-1 px-4 space-y-2 font-['Space_Grotesk'] font-medium">
         <Link href="/" className={`${baseLinkStyle} ${isActive('/') ? activeLinkStyle : inactiveLinkStyle}`}>

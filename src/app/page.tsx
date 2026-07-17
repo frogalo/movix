@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { HeroSection } from "@/components/home/HeroSection";
 import { TrendingMoviesCarousel, Movie } from "@/components/home/TrendingMoviesCarousel";
 import { MovieModal } from "@/components/movie/MovieModal";
@@ -31,6 +32,7 @@ function HomeContent() {
   const mainRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const savedM = localStorage.getItem('filter_show_movies');
@@ -39,19 +41,18 @@ function HomeContent() {
     if (savedTv !== null) setShowTv(savedTv === 'true');
   }, []);
 
-  // Redirect to default landing page on first load of the app session
+  // Redirect to library for registered users on first load of the app session
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && status !== "loading") {
       const hasRedirected = sessionStorage.getItem("has_redirected_default");
       if (!hasRedirected) {
         sessionStorage.setItem("has_redirected_default", "true");
-        const defaultPage = localStorage.getItem("default_landing_page");
-        if (defaultPage && defaultPage !== "/") {
-          router.replace(defaultPage);
+        if (session?.user) {
+          router.replace("/library");
         }
       }
     }
-  }, [router]);
+  }, [router, session, status]);
 
   const toggleMovies = () => {
     setShowMovies(prev => {

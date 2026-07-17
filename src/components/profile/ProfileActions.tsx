@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
@@ -19,24 +19,7 @@ export function ProfileActions() {
   const [removeConfirmStep, setRemoveConfirmStep] = useState(1);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const [defaultPage, setDefaultPage] = useState("/");
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("default_landing_page");
-      if (saved) {
-        setDefaultPage(saved);
-      }
-    }
-  }, []);
-
-  const handleDefaultPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setDefaultPage(value);
-    localStorage.setItem("default_landing_page", value);
-    setSuccessMessage(`Default landing page set to ${value === "/library" ? "Library" : "Home"}.`);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -265,25 +248,7 @@ export function ProfileActions() {
             </div>
           </div>
 
-          {/* Default Landing Page Card */}
-          <div className="flex flex-col justify-between p-5 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition">
-            <div className="space-y-2 mb-4">
-              <h4 className="font-semibold text-white text-sm">Default Landing Page</h4>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Choose which page opens automatically when you start the application.
-              </p>
-            </div>
-            <div>
-              <select
-                value={defaultPage}
-                onChange={handleDefaultPageChange}
-                className="w-full px-4 py-2.5 rounded-lg bg-zinc-900 border border-white/10 text-white text-xs font-semibold focus:border-yellow-400 outline-none transition cursor-pointer"
-              >
-                <option value="/">Home Page</option>
-                <option value="/library">Library Page</option>
-              </select>
-            </div>
-          </div>
+
         </div>
       </div>
 
