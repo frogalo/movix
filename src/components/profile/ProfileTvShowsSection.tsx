@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { TvShowModal } from "@/components/tv/TvShowModal";
 import { ImageWithLoader } from "@/components/common/ImageWithLoader";
+import { formatTvStatus } from "@/lib/format-status";
 
 type Episode = {
   id: string;
@@ -208,8 +209,11 @@ export function ProfileTvShowsSection({ initialTvShows }: ProfileTvShowsSectionP
                   >
                     {show.title}
                   </h4>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    <span>{watchedCount} watched</span>
+                  <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
+                    <span className={`px-1.5 py-0.5 rounded-md font-extrabold ${formatTvStatus(show.status).bgClass}`}>
+                      {formatTvStatus(show.status).label}
+                    </span>
+                    <span className="text-zinc-500">• {watchedCount} watched</span>
                     {show.rating && (
                       <span className="flex items-center gap-0.5 text-amber-400">
                         • ⭐ {show.rating}

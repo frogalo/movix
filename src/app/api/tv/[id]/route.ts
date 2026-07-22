@@ -40,18 +40,28 @@ export async function GET(
       });
     }
 
-    let tmdbId: number | null = null;
-    let tvdbId: number | null = null;
-
-    if (dbShow) {
-      tvdbId = dbShow.tvdbId;
-      if (dbShow.tmdbId) {
-        tmdbId = dbShow.tmdbId;
-      }
-    } else if (!isNaN(Number(id))) {
-      // If not in database but id is a number, assume it's TMDB ID
-      tmdbId = Number(id);
+    // 2. If not found in current user's library, search globally by id/tmdbId/tvdbId to resolve IDs
+    let globalShow = null;
+    if (!dbShow) {
+      globalShow = await prisma.tvShow.findFirst({
+        where: {
+          OR: [
+            { id: id },
+            ...(isNaN(Number(id)) ? [] : [
+              { tmdbId: Number(id) },
+              { tvdbId: Number(id) }
+            ])
+          ]
+        },
+        select: {
+          tvdbId: true,
+          tmdbId: true,
+        }
+      });
     }
+
+    let tmdbId: number | null = dbShow?.tmdbId || globalShow?.tmdbId || null;
+    const tvdbId: number | null = dbShow?.tvdbId || globalShow?.tvdbId || null;
 
     // 2. If we only have TVDB ID, resolve TMDB ID using TMDB Find
     if (tvdbId && !tmdbId) {

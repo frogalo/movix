@@ -2,29 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ImageWithLoader } from "@/components/common/ImageWithLoader";
 import { FollowButton } from "@/components/social/FollowButton";
+import { UserProfileClient } from "@/components/profile/UserProfileClient";
 import Link from "next/link";
-
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w300";
 
 interface Props {
   params: Promise<{ userId: string }>;
-}
-
-function formatMinutes(minutesCount: number): string {
-  const years = Math.floor(minutesCount / (365 * 24 * 60));
-  const months = Math.floor((minutesCount % (365 * 24 * 60)) / (30 * 24 * 60));
-  const days = Math.floor((minutesCount % (30 * 24 * 60)) / (24 * 60));
-  const hours = Math.floor((minutesCount % (24 * 60)) / 60);
-  const minutes = minutesCount % 60;
-  return [
-    years > 0 ? `${years}Y` : "",
-    months > 0 ? `${months}M` : "",
-    days > 0 ? `${days}D` : "",
-    hours > 0 ? `${hours}H` : "",
-    `${minutes}MIN`,
-  ].filter(Boolean).join(" ");
 }
 
 export default async function UserProfilePage({ params }: Props) {
@@ -79,7 +62,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   const apiKey = process.env.TMDB_API_KEY;
 
-  const [ratingsData, watchedEpisodesData, tvShowsData, episodesWatchedCount] = await Promise.all([
+  const [ratingsData, watchedEpisodesData, tvShowsData, totalTvShowsCount, episodesWatchedCount] = await Promise.all([
     prisma.rating.findMany({
       where: { userId },
       select: { movieId: true, rating: true, vote: true, updatedAt: true },
@@ -92,25 +75,115 @@ export default async function UserProfilePage({ params }: Props) {
         episodeNumber: true,
         name: true,
         watchedAt: true,
-        show: { select: { title: true, posterPath: true, tmdbId: true } },
+        show: { select: { id: true, tvdbId: true, tmdbId: true, title: true, posterPath: true } },
       },
       orderBy: { watchedAt: "desc" },
       take: 6,
     }),
     prisma.tvShow.findMany({
       where: { userId },
-      select: { title: true, posterPath: true, tmdbId: true, rating: true, vote: true, status: true },
+      select: { id: true, tvdbId: true, tmdbId: true, title: true, posterPath: true, backdropPath: true, rating: true, vote: true, status: true, isFavorite: true },
       orderBy: { updatedAt: "desc" },
       take: 12,
     }),
+    prisma.tvShow.count({ where: { userId } }),
     prisma.tvEpisode.count({ where: { show: { userId }, isWatched: true } }),
   ]);
 
+  // Resolve any missing poster paths for TV shows in DB and memory
+  if (apiKey) {
+    const showsNeedingPoster: Array<{ id: string; title: string; tvdbId: number; tmdbId: number | null }> = [];
+    const seenShowIds = new Set<string>();
+
+    watchedEpisodesData.forEach((ep) => {
+      if (!ep.show.posterPath && !seenShowIds.has(ep.show.id)) {
+        seenShowIds.add(ep.show.id);
+        showsNeedingPoster.push(ep.show);
+      }
+    });
+
+    tvShowsData.forEach((s) => {
+      if (!s.posterPath && !seenShowIds.has(s.id)) {
+        seenShowIds.add(s.id);
+        showsNeedingPoster.push(s);
+      }
+    });
+
+    if (showsNeedingPoster.length > 0) {
+      await Promise.all(
+        showsNeedingPoster.map(async (s) => {
+          try {
+            let foundPoster: string | null = null;
+            let foundTmdbId: number | null = s.tmdbId;
+
+            if (s.tmdbId) {
+              const res = await fetch(`https://api.themoviedb.org/3/tv/${s.tmdbId}?api_key=${apiKey}`, {
+                next: { revalidate: 3600 },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                foundPoster = data.poster_path || null;
+              }
+            }
+
+            if (!foundPoster && s.tvdbId) {
+              const findRes = await fetch(
+                `https://api.themoviedb.org/3/find/${s.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`,
+                { next: { revalidate: 3600 } }
+              );
+              if (findRes.ok) {
+                const findData = await findRes.json();
+                const match = findData.tv_results?.[0];
+                if (match?.poster_path) {
+                  foundPoster = match.poster_path;
+                  if (!foundTmdbId && match.id) foundTmdbId = match.id;
+                }
+              }
+            }
+
+            if (!foundPoster) {
+              const searchRes = await fetch(
+                `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(s.title)}`,
+                { next: { revalidate: 3600 } }
+              );
+              if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                const match = searchData.results?.find((r: any) => r.poster_path);
+                if (match?.poster_path) {
+                  foundPoster = match.poster_path;
+                  if (!foundTmdbId && match.id) foundTmdbId = match.id;
+                }
+              }
+            }
+
+            if (foundPoster) {
+              await prisma.tvShow.update({
+                where: { id: s.id },
+                data: {
+                  posterPath: foundPoster,
+                  ...(foundTmdbId ? { tmdbId: foundTmdbId } : {}),
+                },
+              });
+
+              watchedEpisodesData.forEach((ep) => {
+                if (ep.show.id === s.id) ep.show.posterPath = foundPoster;
+              });
+              tvShowsData.forEach((showItem) => {
+                if (showItem.id === s.id) showItem.posterPath = foundPoster;
+              });
+            }
+          } catch (e) {
+            console.error(`Failed to resolve poster for ${s.title}:`, e);
+          }
+        })
+      );
+    }
+  }
+
   // Fetch movie info for latest ratings
-  type MovieInfo = { posterPath: string | null; title: string };
-  const movieInfoMap = new Map<number, MovieInfo>();
+  const movieInfoObj: Record<number, { posterPath: string | null; title: string }> = {};
   if (apiKey && ratingsData.length > 0) {
-    const uniqueIds = [...new Set(ratingsData.slice(0, 6).map((r) => r.movieId))];
+    const uniqueIds = [...new Set(ratingsData.slice(0, 12).map((r) => r.movieId))];
     const results = await Promise.all(
       uniqueIds.map(async (id) => {
         try {
@@ -125,7 +198,9 @@ export default async function UserProfilePage({ params }: Props) {
         return { id, posterPath: null, title: `Movie #${id}` };
       })
     );
-    results.forEach((r) => movieInfoMap.set(r.id, { posterPath: r.posterPath, title: r.title }));
+    results.forEach((r) => {
+      movieInfoObj[r.id] = { posterPath: r.posterPath, title: r.title };
+    });
   }
 
   const joinedDate = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(user.createdAt);
@@ -193,159 +268,29 @@ export default async function UserProfilePage({ params }: Props) {
             </div>
             <div className="glass-panel space-y-2 rounded-2xl p-5 relative overflow-hidden group hover:border-teal-400/20 transition-all">
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Shows Tracked</p>
-              <h3 className="text-3xl font-extrabold text-teal-400">{tvShowsData.length}</h3>
+              <h3 className="text-3xl font-extrabold text-teal-400">{totalTvShowsCount}</h3>
               <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">tv</span>
             </div>
           </div>
         </div>
 
-        {/* Latest Movie Ratings */}
-        {ratingsData.length > 0 && (
-          <div>
-            <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
-              <h2 className="flex items-center gap-3 text-xl md:text-2xl font-bold text-white">
-                <span className="material-symbols-outlined text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>movie</span>
-                Latest Rated Movies
-              </h2>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {ratingsData.slice(0, 6).map((r, idx) => {
-                const info = movieInfoMap.get(r.movieId);
-                const posterUrl = info?.posterPath ? TMDB_IMAGE_BASE + info.posterPath : null;
-                return (
-                  <div key={idx} className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-yellow-400/30 transition-all">
-                    {posterUrl ? (
-                      <ImageWithLoader
-                        src={posterUrl}
-                        alt={info?.title ?? "Movie"}
-                        className="w-full h-full object-cover"
-                        wrapperClassName="w-full h-full"
-                        loaderSize={12}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-zinc-700 text-3xl">movie</span>
-                      </div>
-                    )}
-                    {/* Rating overlay */}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-2">
-                      {r.rating && (
-                        <span className="flex items-center gap-0.5 text-yellow-400 font-bold text-xs">
-                          <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {r.rating}/10
-                        </span>
-                      )}
-                      {info?.title && (
-                        <p className="text-white text-[10px] font-medium truncate">{info.title}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Latest Episodes Watched */}
-        {watchedEpisodesData.length > 0 && (
-          <div>
-            <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
-              <h2 className="flex items-center gap-3 text-xl md:text-2xl font-bold text-white">
-                <span className="material-symbols-outlined text-teal-400" style={{ fontVariationSettings: "'FILL' 1" }}>live_tv</span>
-                Recently Watched Episodes
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {watchedEpisodesData.map((ep, idx) => {
-                const posterUrl = ep.show.posterPath ? TMDB_IMAGE_BASE + ep.show.posterPath : null;
-                return (
-                  <div key={idx} className="flex gap-3 p-3 rounded-xl glass-panel border border-white/5 hover:border-white/10 transition-all">
-                    <div className="w-10 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-white/5 shrink-0">
-                      {posterUrl ? (
-                        <ImageWithLoader src={posterUrl} alt={ep.show.title} className="w-full h-full object-cover" wrapperClassName="w-full h-full" loaderSize={10} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="material-symbols-outlined text-zinc-700 text-[16px]">live_tv</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm truncate">{ep.show.title}</p>
-                      <p className="text-xs text-zinc-400">
-                        S{ep.seasonNumber.toString().padStart(2, "0")}E{ep.episodeNumber.toString().padStart(2, "0")}
-                        {ep.name ? ` · ${ep.name}` : ""}
-                      </p>
-                      {ep.watchedAt && (
-                        <p className="text-[10px] text-zinc-600 mt-0.5">
-                          {new Date(ep.watchedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TV Shows Tracked */}
-        {tvShowsData.length > 0 && (
-          <div>
-            <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
-              <h2 className="flex items-center gap-3 text-xl md:text-2xl font-bold text-white">
-                <span className="material-symbols-outlined text-pink-400" style={{ fontVariationSettings: "'FILL' 1" }}>tv</span>
-                Tracked Shows
-              </h2>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {tvShowsData.map((show, idx) => {
-                const posterUrl = show.posterPath ? TMDB_IMAGE_BASE + show.posterPath : null;
-                const statusColors: Record<string, string> = {
-                  watching: "text-teal-400",
-                  completed: "text-emerald-400",
-                  plan_to_watch: "text-blue-400",
-                  dropped: "text-red-400",
-                  not_started_yet: "text-zinc-400",
-                };
-                const statusLabels: Record<string, string> = {
-                  watching: "Watching",
-                  completed: "Completed",
-                  plan_to_watch: "Plan to Watch",
-                  dropped: "Dropped",
-                  not_started_yet: "Not Started",
-                };
-                return (
-                  <div key={idx} className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-purple-400/30 transition-all">
-                    {posterUrl ? (
-                      <ImageWithLoader
-                        src={posterUrl}
-                        alt={show.title}
-                        className="w-full h-full object-cover"
-                        wrapperClassName="w-full h-full"
-                        loaderSize={12}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-zinc-700 text-3xl">tv</span>
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-2">
-                      {show.rating && (
-                        <span className="flex items-center gap-0.5 text-yellow-400 font-bold text-xs">
-                          <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {show.rating}/10
-                        </span>
-                      )}
-                      <p className={`text-[10px] font-bold ${statusColors[show.status] ?? "text-zinc-400"}`}>
-                        {statusLabels[show.status] ?? show.status}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Client Component with interactive modals, social episode cards, formatted status, & load more */}
+        <UserProfileClient
+          userId={userId}
+          ratingsData={ratingsData.map((r) => ({
+            ...r,
+            updatedAt: r.updatedAt.toISOString(),
+          }))}
+          movieInfoMap={movieInfoObj}
+          watchedEpisodesData={watchedEpisodesData.map((ep) => ({
+            ...ep,
+            watchedAt: ep.watchedAt ? ep.watchedAt.toISOString() : null,
+          }))}
+          initialTvShows={tvShowsData.map((s) => ({
+            ...s,
+          }))}
+          totalTvShowsCount={totalTvShowsCount}
+        />
 
         {ratingsData.length === 0 && watchedEpisodesData.length === 0 && tvShowsData.length === 0 && (
           <div className="text-center py-16 text-zinc-600">

@@ -235,14 +235,26 @@ export function SocialFeedClient({
                           )}
 
                           <p className="text-xs text-zinc-400 truncate">
-                            <span className="font-bold text-white">
-                              {isRating
-                                ? (ratingItem!.user.name ?? "Movix Member")
-                                : formatUsersHeader(groupItem!.users)}
-                            </span>{" "}
-                            <span className="text-zinc-500">
-                              {isRating ? "movie rated" : "watched"}
-                            </span>
+                            {isRating ? (
+                              <Link
+                                href={`/users/${ratingItem!.user.id}`}
+                                className="font-bold text-white hover:text-yellow-400 hover:underline transition-colors"
+                              >
+                                {ratingItem!.user.name ?? "Movix Member"}
+                              </Link>
+                            ) : (
+                              groupItem!.users.map((u, index) => (
+                                <span key={u.id}>
+                                  <Link
+                                    href={`/users/${u.id}`}
+                                    className="font-bold text-white hover:text-teal-300 hover:underline transition-colors"
+                                  >
+                                    {u.name ?? "Movix Member"}
+                                  </Link>
+                                  {index < groupItem!.users.length - 1 && ", "}
+                                </span>
+                              ))
+                            )}
                           </p>
                         </div>
 
@@ -299,17 +311,19 @@ export function SocialFeedClient({
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                  <span className="text-[11px] text-zinc-400 font-medium">
-                                    {ep.user.name ?? "Member"}
-                                  </span>
-                                  <UserAvatar
-                                    image={ep.user.image}
-                                    name={ep.user.name}
-                                    sizeClassName="w-4 h-4"
-                                    textClassName="text-[8px]"
-                                  />
-                                </div>
+                                {groupItem!.users.length > 1 && (
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className="text-[11px] text-zinc-400 font-medium">
+                                      {ep.user.name ?? "Member"}
+                                    </span>
+                                    <UserAvatar
+                                      image={ep.user.image}
+                                      name={ep.user.name}
+                                      sizeClassName="w-4 h-4"
+                                      textClassName="text-[8px]"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -327,8 +341,8 @@ export function SocialFeedClient({
                               {isRating ? "star" : "check_circle"}
                             </span>
                             {isRating
-                              ? `You rated this ${myRating ? `${myRating}/10` : ""}`
-                              : "You also watch this"}
+                              ? `You rated this  ${myRating ? `${myRating}/10` : ""}`
+                              : "You watched this"}
                           </span>
                         </div>
                       )}
