@@ -108,7 +108,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   // Fetch movie info for latest ratings
   type MovieInfo = { posterPath: string | null; title: string };
-  let movieInfoMap = new Map<number, MovieInfo>();
+  const movieInfoMap = new Map<number, MovieInfo>();
   if (apiKey && ratingsData.length > 0) {
     const uniqueIds = [...new Set(ratingsData.slice(0, 6).map((r) => r.movieId))];
     const results = await Promise.all(

@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         }
 
         // 2. If filters are active, use the discover endpoint
-        let genreIds: number[] = [];
+        const genreIds: number[] = [];
         if (isGenreFiltered) {
             activeGenres.forEach(genre => {
                 const ids = GENRE_MAP[genre];
