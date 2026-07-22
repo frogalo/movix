@@ -79,6 +79,7 @@ export default async function RootLayout({
     <html lang="en" className="dark">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Edu+VIC+WA+NT+Hand:wght@400..700&display=swap" rel="stylesheet" />
       </head>
       <body
         className={`${inter.variable} ${spaceGrotesk.variable} ${bricolageGrotesque.variable} antialiased min-h-screen flex flex-col md:flex-row overflow-x-hidden`}

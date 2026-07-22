@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { TrailerPlayer } from "@/components/common/TrailerPlayer";
@@ -85,6 +86,11 @@ export function TvShowModal({
   const [isWatchlistAction, setIsWatchlistAction] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch show details & default/selected season episodes
   useEffect(() => {
@@ -448,11 +454,13 @@ export function TvShowModal({
 
   const hideTop = scrollTop > 10;
 
-  return (
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-8 overscroll-none">
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-8 overscroll-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -579,6 +587,7 @@ export function TvShowModal({
           mediaType="tv"
         />
       )}
-    </>
+    </>,
+    document.body
   );
 }

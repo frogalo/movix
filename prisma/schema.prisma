@@ -13,6 +13,7 @@ model User {
   emailVerified           DateTime?                @map("email_verified")
   image                   String?
   passwordHash            String?                  @map("password_hash")
+  isPrivate               Boolean                  @default(false) @map("is_private")
   createdAt               DateTime                 @default(now()) @map("created_at")
   updatedAt               DateTime                 @updatedAt @map("updated_at")
   accounts                Account[]
@@ -23,8 +24,22 @@ model User {
   tvShows                 TvShow[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  following               Follow[]                 @relation("UserFollows")
+  followers               Follow[]                 @relation("UserFollowedBy")
 
   @@map("users")
+}
+
+model Follow {
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowedBy", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
 }
 
 model Watchlist {

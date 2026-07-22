@@ -202,11 +202,11 @@ export function VotingComponent({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
+              transformTemplate={({ scale, y }) => `translateY(-100%) scale(${scale || 1}) translateY(${y || '0px'})`}
               style={{
                 position: "fixed",
                 top: `${coords.top}px`,
                 left: `${coords.left}px`,
-                transform: "translateY(-100%)",
               }}
               className="portal-popover z-[999] hidden w-[290px] rounded-2xl border border-white/10 bg-zinc-950/98 p-4 shadow-2xl backdrop-blur-2xl md:block"
             >

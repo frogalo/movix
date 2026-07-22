@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Movie } from "@/components/home/TrendingMoviesCarousel";
 import { useSession } from "next-auth/react";
@@ -22,6 +23,14 @@ type Genre = {
 };
 
 type MovieExtraInfo = {
+  title?: string;
+  overview?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  release_date?: string;
+  vote_average?: number;
+  vote_count?: number;
+  tagline?: string;
   genres?: Genre[];
   runtime?: number | null;
   cast?: CastMember[];
@@ -50,6 +59,11 @@ export function MovieModal({
   const [extraInfo, setExtraInfo] = useState<MovieExtraInfo | null>(null);
   const [isLoadingExtra, setIsLoadingExtra] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (movie && isOpen) {
@@ -77,29 +91,39 @@ export function MovieModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  const heroImage = movie
-    ? movie.backdrop_path
-      ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
-      : movie.poster_path
-        ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
-        : null
-    : null;
-
   if (!movie) return null;
+
+  const movieTitle = movie.title || extraInfo?.title || "Movie";
+  const backdropPath = movie.backdrop_path || extraInfo?.backdrop_path || null;
+  const posterPath = movie.poster_path || extraInfo?.poster_path || null;
+
+  const heroImage = backdropPath
+    ? `https://image.tmdb.org/t/p/original${backdropPath}`
+    : posterPath
+      ? `https://image.tmdb.org/t/p/original${posterPath}`
+      : null;
+
+  const posterImage = posterPath
+    ? `https://image.tmdb.org/t/p/w500${posterPath}`
+    : heroImage;
 
   const isInWatchlist = userLibrary.watchlists.some((entry) => entry.movieId === movie.id);
   const userRating = userLibrary.ratings.find((entry) => entry.movieId === movie.id)?.rating;
   const userVote = userLibrary.ratings.find((entry) => entry.movieId === movie.id)?.vote;
-  const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A";
+
+  const releaseDate = movie.release_date || extraInfo?.release_date;
+  const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : "N/A";
   const runtimeLabel = extraInfo?.runtime
     ? `${Math.floor(extraInfo.runtime / 60)}h ${extraInfo.runtime % 60}m`
     : null;
   const genreNames = extraInfo?.genres?.slice(0, 3).map((genre) => genre.name) ?? [];
-  const score = movie.vote_average ? movie.vote_average.toFixed(1) : "NR";
-  const scoreDashOffset = 176 - (Math.min(movie.vote_average || 0, 10) / 10) * 176;
-  const posterImage = movie.poster_path
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-    : heroImage;
+
+  const voteAverage = movie.vote_average ?? extraInfo?.vote_average;
+  const voteCount = movie.vote_count ?? extraInfo?.vote_count ?? 0;
+  const score = voteAverage !== undefined && voteAverage !== null ? voteAverage.toFixed(1) : "NR";
+  const scoreDashOffset = 176 - (Math.min(voteAverage ?? 0, 10) / 10) * 176;
+
+  const overview = movie.overview || extraInfo?.overview || (isLoadingExtra ? "Loading overview..." : "No overview available.");
 
   const handleWatchlist = async () => {
     setIsAdding(true);
@@ -160,11 +184,13 @@ export function MovieModal({
     }
   };
 
-  return (
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       <AnimatePresence>
         {isOpen ? (
-          <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-8 overscroll-none">
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-8 overscroll-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -209,7 +235,7 @@ export function MovieModal({
                 {heroImage ? (
                   <ImageWithLoader
                     src={heroImage}
-                    alt={movie.title}
+                    alt={movieTitle}
                     className="absolute inset-0 h-full w-full object-cover"
                     loaderSize={60}
                   />
@@ -229,7 +255,7 @@ export function MovieModal({
                     Trending Pick
                   </div>
                   <h2 className="font-headline-lg text-3xl text-white drop-shadow-lg">
-                    {movie.title}
+                    {movieTitle}
                   </h2>
                   <p className="mt-2 text-sm text-[#ffedc3]">
                     {releaseYear}
@@ -243,7 +269,7 @@ export function MovieModal({
                 <header className="hidden space-y-3 md:block">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-label-sm uppercase tracking-[0.24em] text-yellow-300">
-                      Trending #{Math.max(1, Math.ceil((movie.vote_average || 1) / 2))}
+                      Trending #{Math.max(1, Math.ceil((voteAverage || 1) / 2))}
                     </span>
                     <span className="text-label-sm uppercase tracking-[0.24em] text-zinc-500">
                       TMDB Spotlight
@@ -251,7 +277,7 @@ export function MovieModal({
                   </div>
 
                   <h2 className="font-display-xl text-5xl leading-none tracking-[-0.04em] text-white lg:text-6xl">
-                    {movie.title}
+                    {movieTitle}
                   </h2>
 
                   <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
@@ -314,8 +340,8 @@ export function MovieModal({
                       <div>
                         <div className="flex text-primary-container">
                           {Array.from({ length: 5 }).map((_, index) => {
-                            const filled = (movie.vote_average || 0) / 2 >= index + 1;
-                            const half = !filled && (movie.vote_average || 0) / 2 > index;
+                            const filled = (voteAverage || 0) / 2 >= index + 1;
+                            const half = !filled && (voteAverage || 0) / 2 > index;
 
                             return (
                               <span
@@ -333,7 +359,7 @@ export function MovieModal({
                         </div>
                         <p className="text-sm font-medium text-white">Audience Score</p>
                         <p className="text-label-sm uppercase tracking-[0.18em] text-zinc-500">
-                          {movie.vote_count} ratings
+                          {voteCount ? `${voteCount} ratings` : "TMDB Rating"}
                         </p>
                       </div>
                     </div>
@@ -342,7 +368,7 @@ export function MovieModal({
                       <div className="hidden overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.35)] md:block md:w-28">
                         <ImageWithLoader
                           src={posterImage}
-                          alt={`${movie.title} poster`}
+                          alt={`${movieTitle} poster`}
                           className="aspect-[2/3] h-full w-full object-cover"
                           loaderSize={40}
                         />
@@ -353,7 +379,7 @@ export function MovieModal({
                   <div className="space-y-3">
                     <h3 className="font-headline-md text-xl text-white">Overview</h3>
                     <p className="max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
-                      {movie.overview || "No overview available."}
+                      {overview}
                     </p>
                   </div>
 
@@ -392,11 +418,12 @@ export function MovieModal({
       {movie && (
         <TrailerPlayer
           movieId={movie.id}
-          movieTitle={movie.title ?? ""}
+          movieTitle={movieTitle}
           isOpen={showTrailer}
           onClose={() => setShowTrailer(false)}
         />
       )}
-    </>
+    </>,
+    document.body
   );
 }

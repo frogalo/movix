@@ -31,6 +31,15 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     const usProviders = providers.results?.US?.flatrate || providers.results?.US?.rent || providers.results?.US?.buy || [];
 
     return NextResponse.json({
+      id: details.id,
+      title: details.title,
+      overview: details.overview,
+      poster_path: details.poster_path,
+      backdrop_path: details.backdrop_path,
+      release_date: details.release_date,
+      vote_average: details.vote_average,
+      vote_count: details.vote_count,
+      tagline: details.tagline,
       genres: details.genres || [],
       runtime: details.runtime,
       cast,

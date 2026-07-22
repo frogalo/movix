@@ -1,4 +1,6 @@
-import { signOut } from "@/auth";
+"use client";
+
+import { signOut } from "next-auth/react";
 
 type SignOutButtonProps = {
   className?: string;
@@ -9,16 +11,13 @@ export function SignOutButton({
   className,
   label = "Sign Out",
 }: SignOutButtonProps) {
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
+
   return (
-    <form
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/" });
-      }}
-    >
-      <button type="submit" className={className}>
-        {label}
-      </button>
-    </form>
+    <button type="button" onClick={handleSignOut} className={className}>
+      {label}
+    </button>
   );
 }

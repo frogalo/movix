@@ -6,6 +6,10 @@ import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ImageWithLoader } from '@/components/common/ImageWithLoader';
+import { MovieModal } from '@/components/movie/MovieModal';
+import { TvShowModal } from '@/components/tv/TvShowModal';
+import { UserAvatar } from '@/components/common/UserAvatar';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 export function SearchOverlay() {
   const { data: session } = useSession();
@@ -18,6 +22,24 @@ export function SearchOverlay() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal states
+  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
+  const [selectedTvShowId, setSelectedTvShowId] = useState<number | string | null>(null);
+  const [isTvModalOpen, setIsTvModalOpen] = useState(false);
+  const [userLibrary, setUserLibrary] = useState<{ watchlists: any[]; ratings: any[] }>({ watchlists: [], ratings: [] });
+
+  const fetchLibrary = () => {
+    fetch('/api/user/library')
+      .then(res => res.json())
+      .then(data => setUserLibrary(data || { watchlists: [], ratings: [] }))
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchLibrary();
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -93,7 +115,26 @@ export function SearchOverlay() {
     setShowDropdown(false);
     setMobileOpen(false);
     setQuery('');
-    router.push(`/?${movie.media_type === 'tv' ? 'tvId' : 'movieId'}=${movie.id}`);
+
+    const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
+    if (isTv) {
+      setSelectedTvShowId(movie.id);
+      setIsTvModalOpen(true);
+    } else {
+      const formattedMovie = {
+        ...movie,
+        title: movie.title || movie.name,
+        release_date: movie.release_date || movie.first_air_date,
+      };
+      setSelectedMovie(formattedMovie);
+      setIsMovieModalOpen(true);
+    }
+  };
+
+  const handleLibraryUpdate = () => {
+    fetchLibrary();
+    router.refresh();
+    window.dispatchEvent(new Event('library-updated'));
   };
 
   const ResultsList = () => (
@@ -159,6 +200,11 @@ export function SearchOverlay() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && results.length > 0) {
+                      handleSelect(results[0]);
+                    }
+                  }}
                   autoCapitalize="off"
                   autoCorrect="off"
                 />
@@ -195,22 +241,28 @@ export function SearchOverlay() {
               setShowDropdown(true);
             }}
             onFocus={() => setShowDropdown(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && results.length > 0) {
+                handleSelect(results[0]);
+              }
+            }}
           />
           {isSearching && (
             <div className="w-4 h-4 border-2 border-white/20 border-t-tertiary rounded-full animate-spin absolute right-[88px]"></div>
           )}
           <div className="flex items-center gap-3 pl-3 ml-2 border-l border-white/10 shrink-0">
-            <span className="material-symbols-outlined text-zinc-400 hover:text-white cursor-pointer transition-colors">notifications</span>
-            <Link href="/profile" className="shrink-0 flex items-center justify-center">
-              {session?.user?.image ? (
-                <ImageWithLoader
-                  alt="User Profile Avatar"
-                  className="w-9 h-9 rounded-full border-2 border-white/20 cursor-pointer hover:border-white/50 transition-colors object-cover shrink-0"
-                  src={session.user.image}
-                  loaderSize={16}
+            {session?.user && <NotificationCenter />}
+            <Link href={session?.user ? "/profile" : "/login"} className="shrink-0 flex items-center justify-center">
+              {session?.user ? (
+                <UserAvatar
+                  image={session.user.image}
+                  name={session.user.name}
+                  email={session.user.email}
+                  sizeClassName="w-9 h-9"
+                  textClassName="text-xs"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-zinc-800 border-2 border-white/20 flex items-center justify-center hover:border-white/50 transition-colors shrink-0">
+                <div className="w-9 h-9 rounded-full bg-zinc-800/80 border border-white/10 flex items-center justify-center hover:border-white/30 transition-colors shrink-0" title="Sign In">
                   <span className="material-symbols-outlined text-zinc-400 text-[18px]">person</span>
                 </div>
               )}
@@ -231,6 +283,21 @@ export function SearchOverlay() {
           )}
         </AnimatePresence>
       </div>
+
+      <MovieModal 
+        movie={selectedMovie} 
+        isOpen={isMovieModalOpen} 
+        onClose={() => setIsMovieModalOpen(false)} 
+        userLibrary={userLibrary}
+        onLibraryUpdate={handleLibraryUpdate}
+      />
+      <TvShowModal 
+        showId={selectedTvShowId} 
+        isOpen={isTvModalOpen} 
+        onClose={() => setIsTvModalOpen(false)} 
+        onLibraryUpdate={handleLibraryUpdate}
+      />
     </>
   );
 }
+

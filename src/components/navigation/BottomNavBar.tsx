@@ -31,6 +31,10 @@ export function BottomNavBar() {
         <span className="material-symbols-outlined text-[22px]" style={isActive("/library") ? { fontVariationSettings: "'FILL' 1" } : {}}>bookmark_added</span>
         <span className="text-[10px] font-semibold tracking-wide">Library</span>
       </Link>
+      <Link href="/social" className={linkClass("/social")}>
+        <span className="material-symbols-outlined text-[22px]" style={isActive("/social") ? { fontVariationSettings: "'FILL' 1" } : {}}>group</span>
+        <span className="text-[10px] font-semibold tracking-wide">Social</span>
+      </Link>
       <Link href="/profile" className={linkClass("/profile")}>
         <span className="material-symbols-outlined text-[22px]" style={isActive("/profile") ? { fontVariationSettings: "'FILL' 1" } : {}}>person</span>
         <span className="text-[10px] font-semibold tracking-wide">Account</span>

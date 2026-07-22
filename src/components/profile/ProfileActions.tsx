@@ -4,7 +4,11 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
-export function ProfileActions() {
+interface ProfileActionsProps {
+  initialIsPrivate?: boolean;
+}
+
+export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -18,6 +22,33 @@ export function ProfileActions() {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeConfirmStep, setRemoveConfirmStep] = useState(1);
   const [isRemoving, setIsRemoving] = useState(false);
+
+  const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
+  const [isTogglingPrivacy, setIsTogglingPrivacy] = useState(false);
+
+  const handleTogglePrivacy = async () => {
+    setIsTogglingPrivacy(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPrivate: !isPrivate }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsPrivate(data.isPrivate);
+        setSuccessMessage(data.isPrivate ? "Your account is now private." : "Your account is now public.");
+      } else {
+        setErrorMessage("Failed to update privacy setting.");
+      }
+    } catch {
+      setErrorMessage("Failed to update privacy setting.");
+    } finally {
+      setIsTogglingPrivacy(false);
+    }
+  };
 
 
 
@@ -169,7 +200,36 @@ export function ProfileActions() {
           Data & Settings
         </h3>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">          {/* Privacy Card */}
+          <div className="flex flex-col justify-between p-5 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition">
+            <div className="space-y-2 mb-4">
+              <h4 className="font-semibold text-white text-sm">Account Privacy</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                {isPrivate
+                  ? "Your profile is private. Other users cannot search for you or view your activity."
+                  : "Your profile is public. Other users can find you and see your ratings and watched shows."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleTogglePrivacy}
+              disabled={isTogglingPrivacy}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+                isPrivate
+                  ? "bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-white"
+                  : "bg-purple-900/40 hover:bg-purple-800/50 border border-purple-500/20 text-purple-300"
+              } disabled:opacity-50`}
+            >
+              {isTogglingPrivacy ? (
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: isPrivate ? "'FILL' 1" : "'FILL' 0" }}>
+                  {isPrivate ? "lock" : "public"}
+                </span>
+              )}
+              {isPrivate ? "Make Public" : "Make Private"}
+            </button>
+          </div>
           {/* Import Card */}
           <div className="flex flex-col justify-between p-5 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition">
             <div className="space-y-2 mb-4">

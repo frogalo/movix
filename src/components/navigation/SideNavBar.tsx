@@ -32,6 +32,10 @@ export function SideNavBar() {
           <span className="material-symbols-outlined">movie_filter</span>
           Home
         </Link>
+        <Link href="/top-rated" className={`${baseLinkStyle} ${isActive('/top-rated') ? activeLinkStyle : inactiveLinkStyle}`}>
+          <span className="material-symbols-outlined">star</span>
+          Top Rated
+        </Link>
         {/* <Link href="/discovery" className={`${baseLinkStyle} ${isActive('/discovery') ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">swipe_vertical</span>
           Discovery
@@ -39,6 +43,10 @@ export function SideNavBar() {
         <Link href="/library" className={`${baseLinkStyle} ${isActive('/library') ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">library_books</span>
           Library
+        </Link>
+        <Link href="/social" className={`${baseLinkStyle} ${isActive('/social') ? activeLinkStyle : inactiveLinkStyle}`}>
+          <span className="material-symbols-outlined">group</span>
+          Social
         </Link>
         <Link href="/profile" className={`${baseLinkStyle} ${isActive('/profile') ? activeLinkStyle : inactiveLinkStyle}`}>
           <span className="material-symbols-outlined">person</span>
