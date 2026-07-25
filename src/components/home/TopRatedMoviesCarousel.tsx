@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ImageWithLoader } from '@/components/common/ImageWithLoader';
 import { Movie } from './TrendingMoviesCarousel';
+import { Star, Bookmark, BookmarkMinus, Tv, User, Info } from 'lucide-react';
 
 interface TopRatedMoviesCarouselProps {
   movies: Movie[];
@@ -137,6 +138,7 @@ export function TopRatedMoviesCarousel({
     const inWatchlist = !isTv && userLibrary?.watchlists?.some(w => w.movieId === movie.id) && !userRating;
     const isTrackedTv = isTv && userLibrary?.tvShows?.some(s => s.tmdbId === movie.id);
     const globalIdx = globalIndexMap.get(movie.id) ?? 0;
+    const isInflated = movie.vote_average >= 8.0 && movie.vote_count > 0 && movie.vote_count < 1000;
 
     return (
       <div
@@ -161,7 +163,7 @@ export function TopRatedMoviesCarousel({
           <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-20 pointer-events-none">
             {/* TMDB Average Rating Badge - shown by default */}
             <div className="bg-black/85 backdrop-blur-md rounded-lg px-2 py-1 flex items-center justify-center border border-yellow-400/30 shadow-lg gap-1">
-              <span className="material-symbols-outlined text-[12px] text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
               <span className="text-[12px] font-black text-yellow-400">
                 {movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}
               </span>
@@ -169,23 +171,23 @@ export function TopRatedMoviesCarousel({
 
             {inWatchlist && (
               <div className="bg-black/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center border border-white/20 shadow-lg">
-                <span className="material-symbols-outlined text-[14px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>bookmark</span>
+                <Bookmark className="w-3.5 h-3.5 text-white fill-white" />
               </div>
             )}
             {isTrackedTv && (
               <div className="bg-black/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center border border-white/20 shadow-lg">
-                <span className="material-symbols-outlined text-[14px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>live_tv</span>
+                <Tv className="w-3.5 h-3.5 text-white" />
               </div>
             )}
             {userRating && (
               <div className="bg-black/80 backdrop-blur-sm rounded-full px-2 py-1 flex items-center justify-center border border-white/20 shadow-lg gap-0.5">
-                <span className="material-symbols-outlined text-[12px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                <User className="w-3 h-3 text-white fill-white" />
                 <span className="text-[12px] font-bold text-white">{userRating}</span>
               </div>
             )}
           </div>
         
-          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-20 pointer-events-none">
+          <div className="absolute top-2 left-2 flex flex-col gap-1.5 items-start z-20 pointer-events-none">
             <div className={`backdrop-blur-sm rounded-md px-1.5 py-0.5 flex items-center justify-center border shadow-lg text-[9px] font-black tracking-wider ${
               isTv 
                 ? "bg-purple-600/90 border-purple-400/30 text-white" 
@@ -193,6 +195,12 @@ export function TopRatedMoviesCarousel({
             }`}>
               {isTv ? 'S' : 'M'}
             </div>
+            {isInflated && (
+              <div className="bg-amber-500/90 backdrop-blur-md rounded-md px-1.5 py-0.5 flex items-center justify-center border border-amber-400/30 shadow-lg text-[8px] font-bold text-white uppercase tracking-wider gap-0.5">
+                <Info className="w-2 h-2 text-white shrink-0" />
+                <span>Few Votes</span>
+              </div>
+            )}
           </div>
 
           {globalIdx < 10 && !isSectionGrid && (
@@ -213,9 +221,7 @@ export function TopRatedMoviesCarousel({
                     }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 border cursor-pointer bg-white/10 border-white/5 text-zinc-300 hover:bg-white/20 hover:text-white"
                   >
-                    <span className="material-symbols-outlined text-[12px] leading-none">
-                      live_tv
-                    </span>
+                    <Tv className="w-3 h-3 leading-none" />
                     Track
                   </button>
                 ) : (
@@ -230,9 +236,11 @@ export function TopRatedMoviesCarousel({
                         : "bg-white/10 border-white/5 text-zinc-300 hover:bg-white/20 hover:text-white"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[12px] leading-none">
-                      {inWatchlist ? 'bookmark_remove' : 'bookmark'}
-                    </span>
+                    {inWatchlist ? (
+                      <BookmarkMinus className="w-3 h-3 leading-none" />
+                    ) : (
+                      <Bookmark className="w-3 h-3 leading-none" />
+                    )}
                     Watchlist
                   </button>
                 )}

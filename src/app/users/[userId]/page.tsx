@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/common/UserAvatar";
 import { FollowButton } from "@/components/social/FollowButton";
 import { UserProfileClient } from "@/components/profile/UserProfileClient";
 import Link from "next/link";
+import { Lock, ArrowLeft, BarChart2, Clock, Film, Tv, Star, CheckCheck } from "lucide-react";
 
 interface Props {
   params: Promise<{ userId: string }>;
@@ -43,7 +44,7 @@ export default async function UserProfilePage({ params }: Props) {
         <section className="relative overflow-hidden px-6 pt-24 md:px-12 md:pt-16">
           <div className="relative z-10 mx-auto max-w-2xl text-center py-24">
             <div className="w-24 h-24 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mx-auto mb-6">
-              <span className="material-symbols-outlined text-5xl text-zinc-600">lock</span>
+              <Lock className="w-10 h-10 text-zinc-600" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">Private Account</h2>
             <p className="text-zinc-400 text-sm mb-2">
@@ -51,7 +52,7 @@ export default async function UserProfilePage({ params }: Props) {
             </p>
             <p className="text-zinc-600 text-sm">Their ratings, watchlist, and TV shows are not visible.</p>
             <Link href="/social" className="inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-semibold transition">
-              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+              <ArrowLeft className="w-4 h-4" />
               Back to Social
             </Link>
           </div>
@@ -330,7 +331,7 @@ export default async function UserProfilePage({ params }: Props) {
               href="/social"
               className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition"
             >
-              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
               Back to Social
             </Link>
           </div>
@@ -342,7 +343,7 @@ export default async function UserProfilePage({ params }: Props) {
         <div>
           <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
             <h2 className="flex items-center gap-3 text-xl md:text-2xl font-bold text-white">
-              <span className="material-symbols-outlined text-purple-400" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+              <BarChart2 className="w-6 h-6 text-purple-400" />
               Viewing Statistics
             </h2>
             <span className="font-label-sm text-[12px] font-bold uppercase text-[#00daf3]">
@@ -358,7 +359,7 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs text-zinc-400">
                 Sum of all rated movies and watched episodes runtimes.
               </p>
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">schedule</span>
+              <Clock className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
             <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-teal-400/20 transition-all">
@@ -369,7 +370,7 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs text-zinc-400">
                 Time spent watching rated movies.
               </p>
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">movie</span>
+              <Film className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
             <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-purple-400/20 transition-all">
@@ -380,7 +381,7 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs text-zinc-400">
                 Time spent watching tracked series episodes.
               </p>
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">live_tv</span>
+              <Tv className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
             <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-[#9cf0ff]/20 transition-all">
@@ -391,7 +392,7 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs text-zinc-400">
                 Total number of movies rated.
               </p>
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">star</span>
+              <Star className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
             <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-pink-400/20 transition-all">
@@ -402,7 +403,7 @@ export default async function UserProfilePage({ params }: Props) {
               <p className="text-xs text-zinc-400">
                 Total number of TV show episodes watched.
               </p>
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform">done_all</span>
+              <CheckCheck className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
           </div>
         </div>
@@ -427,7 +428,7 @@ export default async function UserProfilePage({ params }: Props) {
 
         {ratingsData.length === 0 && watchedEpisodesData.length === 0 && tvShowsData.length === 0 && (
           <div className="text-center py-16 text-zinc-600">
-            <span className="material-symbols-outlined text-6xl mb-3 block opacity-30">playlist_remove</span>
+            <Film className="w-16 h-16 mx-auto mb-3 opacity-30 text-zinc-600" />
             <p className="text-zinc-400 font-medium">No activity yet</p>
             <p className="text-sm mt-1">This user has not rated any movies or tracked any TV shows yet.</p>
           </div>

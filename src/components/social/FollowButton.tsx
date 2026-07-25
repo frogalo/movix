@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
+import { UserCheck, UserPlus } from "lucide-react";
 
 interface FollowButtonProps {
   targetUserId: string;
@@ -51,10 +52,10 @@ export function FollowButton({
     >
       {loading ? (
         <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      ) : isFollowing ? (
+        <UserCheck className="w-3.5 h-3.5" />
       ) : (
-        <span className="material-symbols-outlined text-[14px]">
-          {isFollowing ? "person_remove" : "person_add"}
-        </span>
+        <UserPlus className="w-3.5 h-3.5" />
       )}
       {isFollowing ? "Following" : "Follow"}
     </button>

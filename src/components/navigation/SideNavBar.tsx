@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Clapperboard, Star, Library, Users, User } from "lucide-react";
 
 export function SideNavBar() {
   const pathname = usePathname();
@@ -29,27 +30,23 @@ export function SideNavBar() {
       </div>
       <nav className="flex-1 px-4 space-y-2 font-['Space_Grotesk'] font-medium">
         <Link href={homeHref} className={`${baseLinkStyle} ${isActive(homeHref) ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">movie_filter</span>
+          <Clapperboard className="w-5 h-5" />
           Home
         </Link>
         <Link href="/top-rated" className={`${baseLinkStyle} ${isActive('/top-rated') ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">star</span>
+          <Star className="w-5 h-5" />
           Top Rated
         </Link>
-        {/* <Link href="/discovery" className={`${baseLinkStyle} ${isActive('/discovery') ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">swipe_vertical</span>
-          Discovery
-        </Link> */}
         <Link href="/library" className={`${baseLinkStyle} ${isActive('/library') ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">library_books</span>
+          <Library className="w-5 h-5" />
           Library
         </Link>
         <Link href="/social" className={`${baseLinkStyle} ${isActive('/social') ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">group</span>
+          <Users className="w-5 h-5" />
           Social
         </Link>
         <Link href="/profile" className={`${baseLinkStyle} ${isActive('/profile') ? activeLinkStyle : inactiveLinkStyle}`}>
-          <span className="material-symbols-outlined">person</span>
+          <User className="w-5 h-5" />
           Profile
         </Link>
       </nav>

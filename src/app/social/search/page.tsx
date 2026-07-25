@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import { Search, UserSearch, Users } from "lucide-react";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { FollowButton } from "@/components/social/FollowButton";
 
@@ -53,15 +54,13 @@ export default function SocialSearchPage() {
         <div className="relative z-10 mx-auto max-w-3xl">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-black text-white font-['Space_Grotesk'] mb-2">
-              Find Members
+              Find Friends
             </h1>
             <p className="text-zinc-400 text-sm">Search for other Movix users to follow their watching activity.</p>
           </div>
 
           <div className="relative mb-8">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-[20px]">
-              search
-            </span>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
             <input
               type="text"
               value={query}
@@ -77,14 +76,14 @@ export default function SocialSearchPage() {
 
           {searched && users.length === 0 && !loading && (
             <div className="text-center py-16 text-zinc-500">
-              <span className="material-symbols-outlined text-5xl mb-3 block">person_search</span>
+              <UserSearch className="w-12 h-12 mx-auto mb-3 text-zinc-600" />
               <p className="text-sm">No public users found matching &quot;{query}&quot;</p>
             </div>
           )}
 
           {!searched && !loading && (
             <div className="text-center py-16 text-zinc-600">
-              <span className="material-symbols-outlined text-6xl mb-3 block">group_search</span>
+              <Users className="w-12 h-12 mx-auto mb-3 text-zinc-600" />
               <p className="text-sm">Start typing to find other members</p>
             </div>
           )}

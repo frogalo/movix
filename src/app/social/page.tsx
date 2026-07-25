@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { UserSearch, UserPlus, Search } from "lucide-react";
 import {
   SocialFeedClient,
   FeedGroupedItem,
@@ -11,8 +12,7 @@ import {
 } from "@/components/social/SocialFeedClient";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w300";
-
-
+const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w780";
 
 function formatDayHeader(dateStr: string): string {
   const itemDate = new Date(dateStr);
@@ -55,10 +55,15 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
             });
             if (res.ok) {
               const data = await res.json();
-              return { id, posterPath: data.poster_path as string | null, title: data.title as string };
+              return {
+                id,
+                posterPath: data.poster_path as string | null,
+                backdropPath: data.backdrop_path as string | null,
+                title: data.title as string,
+              };
             }
           } catch {}
-          return { id, posterPath: null, title: null };
+          return { id, posterPath: null, backdropPath: null, title: null };
         })
       )
     : [];
@@ -66,6 +71,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
   const movieMap = new Map(moviePosters.map((p) => [p.id, p]));
 
   const tvPosterMap = new Map<string, string>();
+  const tvBackdropMap = new Map<string, string>();
   const tvGroupsNeedingPoster = feed.filter(
     (i): i is FeedEpisodeGroupItem =>
       i.type === "episode_group" && (!i.showPosterPath || !i.showPosterPath.startsWith("/"))
@@ -92,8 +98,11 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
               const data = await res.json();
               if (data.poster_path) {
                 tvPosterMap.set(item.title.toLowerCase().trim(), data.poster_path);
-                return;
               }
+              if (data.backdrop_path) {
+                tvBackdropMap.set(item.title.toLowerCase().trim(), data.backdrop_path);
+              }
+              if (data.poster_path || data.backdrop_path) return;
             }
           }
 
@@ -107,6 +116,9 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
             if (match?.poster_path) {
               tvPosterMap.set(item.title.toLowerCase().trim(), match.poster_path);
             }
+            if (match?.backdrop_path) {
+              tvBackdropMap.set(item.title.toLowerCase().trim(), match.backdrop_path);
+            }
           }
         } catch {}
       })
@@ -119,17 +131,20 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
       return {
         ...item,
         posterUrl: info?.posterPath ? TMDB_IMAGE_BASE + info.posterPath : null,
+        backdropUrl: info?.backdropPath ? TMDB_BACKDROP_BASE + info.backdropPath : null,
         movieTitle: info?.title ?? null,
       };
     }
 
     const key = item.showTitle.toLowerCase().trim();
     const fetchedPoster = tvPosterMap.get(key);
+    const fetchedBackdrop = tvBackdropMap.get(key);
     const posterPath = item.showPosterPath || fetchedPoster;
 
     return {
       ...item,
       posterUrl: posterPath ? (posterPath.startsWith("http") ? posterPath : TMDB_IMAGE_BASE + posterPath) : null,
+      backdropUrl: fetchedBackdrop ? TMDB_BACKDROP_BASE + fetchedBackdrop : null,
     };
   });
 }
@@ -159,7 +174,7 @@ export default async function SocialPage() {
           </div>
 
           <div className="relative z-10 mx-auto max-w-3xl">
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black text-white font-['Space_Grotesk'] mb-1">
                   Social
@@ -167,15 +182,15 @@ export default async function SocialPage() {
               </div>
               <Link
                 href="/social/search"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/20 text-yellow-400 text-xs font-bold uppercase tracking-wider transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/20 text-yellow-400 text-xs font-bold uppercase tracking-wider transition self-start sm:self-auto"
               >
-                <span className="material-symbols-outlined text-[16px]">person_search</span>
-                Find Members
+                <UserSearch className="w-4 h-4" />
+                Find Friends
               </Link>
             </div>
 
             <div className="text-center py-24 text-zinc-500 glass-panel rounded-2xl border border-white/5 p-8">
-              <span className="material-symbols-outlined text-7xl mb-4 block text-yellow-400/60">person_add</span>
+              <UserPlus className="w-16 h-16 mx-auto mb-4 text-yellow-400/60" />
               <p className="text-xl font-bold text-white mb-2">You aren&apos;t following anyone yet</p>
               <p className="text-sm text-zinc-400 max-w-md mx-auto mb-6">
                 Search for other Movix members and follow them to see their movie ratings and TV show activity here.
@@ -184,8 +199,8 @@ export default async function SocialPage() {
                 href="/social/search"
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-bold uppercase tracking-wider transition shadow-[0_0_20px_rgba(255,204,0,0.3)]"
               >
-                <span className="material-symbols-outlined text-[18px]">search</span>
-                Find Members to Follow
+                <Search className="w-4 h-4" />
+                Find Friends to Follow
               </Link>
             </div>
           </div>
@@ -373,8 +388,8 @@ export default async function SocialPage() {
           <div className="absolute right-0 bottom-0 h-[300px] w-[300px] rounded-full bg-[#ffcc00] blur-[100px]" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-3xl">
-          <div className="mb-8 flex items-center justify-between">
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-black text-white font-['Space_Grotesk'] mb-1">
                 Social
@@ -382,10 +397,10 @@ export default async function SocialPage() {
             </div>
             <Link
               href="/social/search"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/20 text-yellow-400 text-xs font-bold uppercase tracking-wider transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/20 text-yellow-400 text-xs font-bold uppercase tracking-wider transition self-start sm:self-auto"
             >
-              <span className="material-symbols-outlined text-[16px]">person_search</span>
-              Find Members
+              <UserSearch className="w-4 h-4" />
+              Find Friends
             </Link>
           </div>
 

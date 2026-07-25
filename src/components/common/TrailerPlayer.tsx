@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { X, VideoOff, PlayCircle, PauseCircle } from "lucide-react";
 
 type TrailerVideo = {
   id: string;
@@ -111,9 +112,9 @@ export function TrailerPlayer({
               <button
                 onClick={onClose}
                 aria-label="Close trailer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/15"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/15 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -129,9 +130,7 @@ export function TrailerPlayer({
                   </div>
                 ) : error ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-900 p-6 text-center">
-                    <span className="material-symbols-outlined text-5xl text-zinc-600">
-                      videocam_off
-                    </span>
+                    <VideoOff className="w-12 h-12 text-zinc-600" />
                     <p className="text-sm text-zinc-400">{error}</p>
                   </div>
                 ) : activeVideo ? (
@@ -155,15 +154,17 @@ export function TrailerPlayer({
                   <button
                     key={video.id}
                     onClick={() => setActiveIndex(index)}
-                    className={`group flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                    className={`group flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
                       index === activeIndex
                         ? "border-primary-container bg-primary-container/20 text-primary-container"
                         : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[14px]">
-                      {index === activeIndex ? "pause_circle" : "play_circle"}
-                    </span>
+                    {index === activeIndex ? (
+                      <PauseCircle className="w-4 h-4" />
+                    ) : (
+                      <PlayCircle className="w-4 h-4" />
+                    )}
                     <span className="max-w-[180px] truncate">{video.name}</span>
                     {video.official && (
                       <span className="ml-1 rounded-full bg-yellow-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-yellow-300">

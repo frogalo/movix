@@ -244,10 +244,10 @@ export function UserProfileClient({
                 <div
                   key={idx}
                   onClick={() => targetShowId && handleShowClick(targetShowId)}
-                  className="glass-panel border border-white/10 hover:border-teal-500/40 rounded-2xl overflow-hidden shadow-xl hover:shadow-[0_0_20px_rgba(45,212,191,0.15)] transition-all duration-300 flex group cursor-pointer"
+                  className="glass-panel border border-teal-500/15 hover:border-teal-400/40 rounded-2xl overflow-hidden shadow-xl hover:shadow-[0_8px_30px_rgba(45,212,191,0.12)] transition-all duration-300 flex group cursor-pointer"
                 >
                   {/* Left Poster */}
-                  <div className="w-24 sm:w-28 shrink-0 relative aspect-[2/3] bg-zinc-950 border-r border-white/10 overflow-hidden group/cover">
+                  <div className="w-24 sm:w-28 shrink-0 relative bg-zinc-950 border-r border-white/10 overflow-hidden group/cover">
                     {posterUrl ? (
                       <ImageWithLoader
                         src={posterUrl}
@@ -257,7 +257,7 @@ export function UserProfileClient({
                         loaderSize={10}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+                      <div className="w-full h-full min-h-[120px] flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
                         <span className="material-symbols-outlined text-zinc-600 text-3xl">live_tv</span>
                       </div>
                     )}
@@ -269,44 +269,45 @@ export function UserProfileClient({
                     </div>
                   </div>
 
-                  {/* Middle Content */}
+                  {/* Content Area */}
                   <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
                     <div>
-                      <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-teal-300 transition-colors truncate">
+                      <h3 className="text-base sm:text-lg font-black text-white group-hover:text-teal-300 transition-colors truncate font-['Space_Grotesk'] tracking-tight">
                         {ep.show.title}
                       </h3>
 
                       {/* Episode Badge */}
-                      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1 font-mono font-extrabold text-xs px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-400/40 shadow-[0_0_12px_rgba(45,212,191,0.2)]">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-mono font-extrabold text-xs px-2.5 py-1 rounded-lg bg-teal-500/15 text-teal-300 border border-teal-400/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]">
                           S{ep.seasonNumber.toString().padStart(2, "0")} · E
                           {ep.episodeNumber.toString().padStart(2, "0")}
                         </span>
                         {ep.name && (
-                          <span className="text-zinc-300 font-medium text-xs truncate max-w-[220px]">
-                            {ep.name}
+                          <span className="text-zinc-300 font-medium text-xs truncate max-w-[220px] italic">
+                            &quot;{ep.name}&quot;
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {ep.watchedAt && (
-                      <p className="text-[11px] text-zinc-500 font-medium mt-3 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[13px]">schedule</span>
-                        {new Date(ep.watchedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Right Vertical Action Accent Bar */}
-                  <div className="w-9 shrink-0 flex items-center justify-center border-l bg-teal-500/10 border-teal-500/20 text-teal-400 group-hover:bg-teal-500/20 transition-colors select-none">
-                    <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black uppercase tracking-[0.25em]">
-                      WATCHED
-                    </span>
+                    <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                      {ep.watchedAt ? (
+                        <p className="text-[11px] text-zinc-500 font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[13px]">schedule</span>
+                          {new Date(ep.watchedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      ) : (
+                        <div />
+                      )}
+                      <span className="text-[11px] font-bold text-zinc-400 group-hover:text-teal-300 transition-colors flex items-center gap-0.5">
+                        View Show
+                        <span className="material-symbols-outlined text-[13px] group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
