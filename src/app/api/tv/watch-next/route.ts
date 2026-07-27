@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { fetchWithCache } from '@/lib/tmdbCache';
 
 async function getTvShowDetails(tmdbId: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`);
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
 }
 
 async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`);
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
 }
 
 export async function GET(req: Request) {
@@ -132,6 +125,18 @@ export async function GET(req: Request) {
        isNew = (Date.now() - airDate.getTime()) < (14 * 24 * 60 * 60 * 1000) || airDate.getTime() > Date.now();
     }
 
+    // Determine if this is the final episode of the final season
+    const regularSeasons = details.seasons?.filter((s: any) => s.season_number > 0) || [];
+    let lastSeasonNum = 0;
+    let lastEpisodeNum = 0;
+    if (regularSeasons.length > 0) {
+      const sortedSeasons = [...regularSeasons].sort((a: any, b: any) => b.season_number - a.season_number);
+      const lastSeasonMeta = sortedSeasons[0];
+      lastSeasonNum = lastSeasonMeta.season_number;
+      lastEpisodeNum = lastSeasonMeta.episode_count;
+    }
+    const isLastEpisodeOfLastSeason = (nextSeason === lastSeasonNum) && (nextEpisode === lastEpisodeNum);
+
     return NextResponse.json({
       showId: show.id,
       showTitle: show.title,
@@ -149,6 +154,7 @@ export async function GET(req: Request) {
       daysUntil,
       totalEpisodesWatched: watchedCount,
       totalWatchTimeMinutes,
+      isLastEpisodeOfLastSeason,
     });
   } catch (error) {
     console.error('[WATCH_NEXT_GET]', error);

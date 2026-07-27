@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { fetchWithCache } from '@/lib/tmdbCache';
 
 const RATINGS_PAGE_SIZE = 6;
 
 async function getMovie(id: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
-      next: { revalidate: 3600 }
-    });
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+  return fetchWithCache(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, 3600);
 }
 
 export async function GET(req: Request) {

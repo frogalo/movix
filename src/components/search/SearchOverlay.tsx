@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { ImageWithLoader } from '@/components/common/ImageWithLoader';
 import { MovieModal } from '@/components/movie/MovieModal';
 import { TvShowModal } from '@/components/tv/TvShowModal';
+import { GameModal } from '@/components/game/GameModal';
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
@@ -28,6 +29,8 @@ export function SearchOverlay() {
   const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
   const [selectedTvShowId, setSelectedTvShowId] = useState<number | string | null>(null);
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
   const [userLibrary, setUserLibrary] = useState<{ watchlists: any[]; ratings: any[] }>({ watchlists: [], ratings: [] });
 
   const fetchLibrary = () => {
@@ -116,6 +119,12 @@ export function SearchOverlay() {
     setMobileOpen(false);
     setQuery('');
 
+    if (movie.media_type === 'game') {
+      setSelectedGameId(movie.id);
+      setIsGameModalOpen(true);
+      return;
+    }
+
     const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
     if (isTv) {
       setSelectedTvShowId(movie.id);
@@ -137,41 +146,60 @@ export function SearchOverlay() {
     window.dispatchEvent(new Event('library-updated'));
   };
 
-  const ResultsList = () => (
-    <>
-      {query.length > 0 && query.length < 3 ? (
-        <div className="px-4 py-6 text-center text-zinc-500 text-sm">Please type at least 3 characters</div>
-      ) : results.length === 0 && !isSearching && query.length >= 3 ? (
-        <div className="px-4 py-6 text-center text-zinc-500 text-sm">No results found for &ldquo;{query}&rdquo;</div>
-      ) : (
-        results.map((result) => (
-          <div 
-            key={result.id}
-            onClick={() => handleSelect(result)}
-            className="px-4 py-3 flex items-center gap-3 hover:bg-white/10 active:bg-white/15 cursor-pointer transition-colors touch-manipulation"
-          >
-            <ImageWithLoader 
-              src={result.poster_path || result.backdrop_path ? `https://image.tmdb.org/t/p/w92${result.poster_path || result.backdrop_path}` : 'https://via.placeholder.com/92x138?text=No+Image'} 
-              alt={result.title || result.name} 
-              className="w-full h-full object-cover rounded-lg"
-              wrapperClassName="w-11 h-16 shrink-0 shadow-md bg-zinc-800 rounded-lg"
-              loaderSize={20}
-            />
-            <div className="flex flex-col overflow-hidden">
-              <span className="text-white text-sm font-semibold truncate">{result.title || result.name}</span>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">{result.media_type === 'tv' ? 'TV Series' : 'Movie'}</span>
-                <span className="text-[10px] text-zinc-500">•</span>
-                <span className="text-[10px] text-zinc-400">
-                  {result.release_date ? result.release_date.split('-')[0] : (result.first_air_date ? result.first_air_date.split('-')[0] : '')}
-                </span>
+  const ResultsList = () => {
+    const getPosterUrl = (result: any) => {
+      const path = result.poster_path || result.backdrop_path;
+      if (!path) return 'https://via.placeholder.com/92x138?text=No+Image';
+      if (path.startsWith('http')) return path;
+      return `https://image.tmdb.org/t/p/w92${path}`;
+    };
+
+    const getMediaLabel = (result: any) => {
+      if (result.media_type === 'game') return 'Game';
+      if (result.media_type === 'tv') return 'TV Series';
+      return 'Movie';
+    };
+
+    return (
+      <>
+        {query.length > 0 && query.length < 3 ? (
+          <div className="px-4 py-6 text-center text-zinc-500 text-sm">Please type at least 3 characters</div>
+        ) : results.length === 0 && !isSearching && query.length >= 3 ? (
+          <div className="px-4 py-6 text-center text-zinc-500 text-sm">No results found for &ldquo;{query}&rdquo;</div>
+        ) : (
+          results.map((result) => (
+            <div 
+              key={result.id}
+              onClick={() => handleSelect(result)}
+              className="px-4 py-3 flex items-center gap-3 hover:bg-white/10 active:bg-white/15 cursor-pointer transition-colors touch-manipulation"
+            >
+              <ImageWithLoader 
+                src={getPosterUrl(result)} 
+                alt={result.title || result.name} 
+                className="w-full h-full object-cover rounded-lg"
+                wrapperClassName="w-11 h-16 shrink-0 shadow-md bg-zinc-800 rounded-lg"
+                loaderSize={20}
+              />
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-white text-sm font-semibold truncate">{result.title || result.name}</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] uppercase text-zinc-400 font-bold tracking-wider">{getMediaLabel(result)}</span>
+                  {(result.release_date || result.first_air_date) && (
+                    <>
+                      <span className="text-[10px] text-zinc-500">•</span>
+                      <span className="text-[10px] text-zinc-400">
+                        {result.release_date ? result.release_date.split('-')[0] : (result.first_air_date ? result.first_air_date.split('-')[0] : '')}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))
-      )}
-    </>
-  );
+          ))
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -296,6 +324,20 @@ export function SearchOverlay() {
         isOpen={isTvModalOpen} 
         onClose={() => setIsTvModalOpen(false)} 
         onLibraryUpdate={handleLibraryUpdate}
+      />
+      <GameModal
+        gameId={selectedGameId}
+        isOpen={isGameModalOpen}
+        onClose={() => setIsGameModalOpen(false)}
+        onLibraryUpdate={handleLibraryUpdate}
+        onSelectMovieId={(id) => {
+          setSelectedMovie({ id });
+          setIsMovieModalOpen(true);
+        }}
+        onSelectTvShowId={(id) => {
+          setSelectedTvShowId(id);
+          setIsTvModalOpen(true);
+        }}
       />
     </>
   );

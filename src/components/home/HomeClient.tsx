@@ -6,6 +6,7 @@ import { HeroSection } from "@/components/home/HeroSection";
 import { TrendingMoviesCarousel, Movie } from "@/components/home/TrendingMoviesCarousel";
 import { MovieModal } from "@/components/movie/MovieModal";
 import { TvShowModal } from "@/components/tv/TvShowModal";
+import { GameModal } from "@/components/game/GameModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 type ApiResponse = {
@@ -24,10 +25,13 @@ function HomeContent() {
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [userLibrary, setUserLibrary] = useState({ watchlists: [], ratings: [], tvShows: [] });
+  const [userLibrary, setUserLibrary] = useState({ watchlists: [], ratings: [], tvShows: [], games: [] });
   const [isMobile, setIsMobile] = useState(false);
   const [showMovies, setShowMovies] = useState(true);
   const [showTv, setShowTv] = useState(true);
+  const [showGames, setShowGames] = useState(true);
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -35,14 +39,16 @@ function HomeContent() {
   useEffect(() => {
     const savedM = localStorage.getItem('filter_show_movies');
     const savedTv = localStorage.getItem('filter_show_tv');
+    const savedGames = localStorage.getItem('filter_show_games');
     if (savedM !== null) setShowMovies(savedM === 'true');
     if (savedTv !== null) setShowTv(savedTv === 'true');
+    if (savedGames !== null) setShowGames(savedGames === 'true');
   }, []);
 
   const toggleMovies = () => {
     setShowMovies(prev => {
       const newVal = !prev;
-      if (!newVal && !showTv) return prev;
+      if (!newVal && !showTv && !showGames) return prev;
       localStorage.setItem('filter_show_movies', String(newVal));
       return newVal;
     });
@@ -51,26 +57,39 @@ function HomeContent() {
   const toggleTv = () => {
     setShowTv(prev => {
       const newVal = !prev;
-      if (!newVal && !showMovies) return prev;
+      if (!newVal && !showMovies && !showGames) return prev;
       localStorage.setItem('filter_show_tv', String(newVal));
       return newVal;
     });
   };
 
+  const toggleGames = () => {
+    setShowGames(prev => {
+      const newVal = !prev;
+      if (!newVal && !showMovies && !showTv) return prev;
+      localStorage.setItem('filter_show_games', String(newVal));
+      return newVal;
+    });
+  };
+
   const filteredMovies = movies.filter(movie => {
+    if (movie.media_type === 'game') return showGames;
     const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
     return isTv ? showTv : showMovies;
   });
 
   useEffect(() => {
     if (filteredMovies.length > 0) {
-      const currentIsTv = selectedMovie?.media_type === 'tv' || (!selectedMovie?.title && !!selectedMovie?.name);
-      const currentMatchesFilter = selectedMovie && (currentIsTv ? showTv : showMovies);
+      const currentMatchesFilter = selectedMovie && (
+        selectedMovie.media_type === 'game'
+          ? showGames
+          : ((selectedMovie.media_type === 'tv' || (!selectedMovie.title && !!selectedMovie.name)) ? showTv : showMovies)
+      );
       if (!currentMatchesFilter) {
         setSelectedMovie(filteredMovies[0]);
       }
     }
-  }, [filteredMovies, showMovies, showTv, selectedMovie]);
+  }, [filteredMovies, showMovies, showTv, showGames, selectedMovie]);
 
   useEffect(() => {
     const movieId = searchParams.get('movieId');
@@ -176,6 +195,9 @@ function HomeContent() {
     if (movie.media_type === 'tv') {
       setSelectedTvShow(movie);
       setIsTvModalOpen(true);
+    } else if (movie.media_type === 'game') {
+      setSelectedGameId(movie.id);
+      setIsGameModalOpen(true);
     } else {
       setSelectedMovie(movie);
       if (showAll) {
@@ -268,8 +290,10 @@ function HomeContent() {
         onLoadMore={loadMoreMovies}
         showMovies={showMovies}
         showTv={showTv}
+        showGames={showGames}
         onToggleMovies={toggleMovies}
         onToggleTv={toggleTv}
+        onToggleGames={toggleGames}
       />
       {isLoadingMore && showAll && (
         <div className="flex justify-center pb-8">
@@ -288,6 +312,20 @@ function HomeContent() {
         isOpen={isTvModalOpen} 
         onClose={() => setIsTvModalOpen(false)} 
         onLibraryUpdate={fetchLibrary}
+      />
+      <GameModal
+        gameId={selectedGameId}
+        isOpen={isGameModalOpen}
+        onClose={() => setIsGameModalOpen(false)}
+        onLibraryUpdate={fetchLibrary}
+        onSelectMovieId={(id) => {
+          setSelectedMovie({ id } as any);
+          setIsModalOpen(true);
+        }}
+        onSelectTvShowId={(id) => {
+          setSelectedTvShow({ id });
+          setIsTvModalOpen(true);
+        }}
       />
     </main>
   );

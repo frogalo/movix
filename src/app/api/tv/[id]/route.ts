@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { fetchWithCache } from '@/lib/tmdbCache';
 
 export async function GET(
   request: Request,
@@ -98,10 +99,11 @@ export async function GET(
       }
     }
 
-    const [detailsRes, creditsRes] = await Promise.all([
-      fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`),
-      fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`)
+    const [details, creditsData] = await Promise.all([
+      fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600),
+      fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600)
     ]);
+    const credits = creditsData || { cast: [] };
 
     // Helper to resolve auto season
     const resolveSeason = (detailsObj: any, showRecord: any) => {
@@ -126,31 +128,24 @@ export async function GET(
       return nextSeason ? latest.seasonNumber + 1 : latest.seasonNumber;
     };
 
-    if (!detailsRes.ok) {
+    if (!details) {
       if (!dbShow && !tvdbId) {
-        const findRes = await fetch(
-          `https://api.themoviedb.org/3/find/${id}?external_source=tvdb_id&api_key=${apiKey}`
+        const findData = await fetchWithCache(
+          `https://api.themoviedb.org/3/find/${id}?external_source=tvdb_id&api_key=${apiKey}`,
+          3600
         );
-        if (findRes.ok) {
-          const findData = await findRes.json();
-          const tvResult = findData.tv_results?.[0];
-          if (tvResult) {
-            tmdbId = tvResult.id;
-            const retryRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`);
-            if (retryRes.ok) {
-              const details = await retryRes.json();
-              const creditsResRetry = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`);
-              const credits = creditsResRetry.ok ? await creditsResRetry.json() : { cast: [] };
-              return await buildResponse(dbShow, details, credits, resolveSeason(details, dbShow), tmdbId!, apiKey);
-            }
+        const tvResult = findData?.tv_results?.[0];
+        if (tvResult) {
+          tmdbId = tvResult.id;
+          const retryDetails = await fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
+          if (retryDetails) {
+            const retryCredits = await fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600) || { cast: [] };
+            return await buildResponse(dbShow, retryDetails, retryCredits, resolveSeason(retryDetails, dbShow), tmdbId!, apiKey);
           }
         }
       }
       return new NextResponse('TV Show details not found in TMDB', { status: 404 });
     }
-
-    const details = await detailsRes.json();
-    const credits = creditsRes.ok ? await creditsRes.json() : { cast: [] };
 
     // Update database with tmdbId, posterPath, backdropPath if missing
     if (dbShow && (!dbShow.tmdbId || !dbShow.posterPath || !dbShow.backdropPath)) {
@@ -191,12 +186,12 @@ async function buildResponse(
 
   // Fetch season episodes
   let episodes: any[] = [];
-  const seasonRes = await fetch(
-    `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}`
+  const seasonData = await fetchWithCache(
+    `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}`,
+    3600
   );
 
-  if (seasonRes.ok) {
-    const seasonData = await seasonRes.json();
+  if (seasonData) {
     if (seasonData.episodes && Array.isArray(seasonData.episodes)) {
       episodes = seasonData.episodes.map((ep: any) => {
         // Map database state if exists

@@ -1,35 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-
-async function getMovie(id: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
-      next: { revalidate: 3600 }
-    });
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
-}
+import { fetchWithCache } from '@/lib/tmdbCache';
 
 async function getTvShowDetails(tmdbId: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, {
-      next: { revalidate: 3600 }
-    });
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
 }
 
 async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: string) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, {
-      next: { revalidate: 3600 }
-    });
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
 }
 
 async function resolveShowMetadata(show: any, apiKey: string) {
@@ -70,11 +49,13 @@ async function resolveShowMetadata(show: any, apiKey: string) {
   }
 
   let totalEpisodes = 0;
+  let tmdbDetails: any = null;
   if (tmdbId) {
     try {
       const details = await getTvShowDetails(tmdbId, apiKey);
       if (details) {
         totalEpisodes = details.number_of_episodes || 0;
+        tmdbDetails = details;
       }
     } catch (err) {
       console.error(`Failed to fetch TMDB details for tmdb:${tmdbId}`, err);
@@ -87,6 +68,7 @@ async function resolveShowMetadata(show: any, apiKey: string) {
     posterPath,
     backdropPath,
     totalEpisodes,
+    tmdbDetails,
   };
 }
 
@@ -104,22 +86,11 @@ export async function GET() {
       return NextResponse.json({ error: 'TMDB API Key missing' }, { status: 500 });
     }
 
-    // 1. Fetch movies in watchlist (for Watch Next)
-    const dbWatchlist = await prisma.watchlist.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const watchlistMovies = (
-      await Promise.all(
-        dbWatchlist.map((w) => getMovie(w.movieId, apiKey))
-      )
-    ).filter(Boolean);
-
-    // 2. Fetch watch next episodes
+    // 1. Fetch watch next episodes
     const activeShows = await prisma.tvShow.findMany({
       where: {
         userId,
+        status: "watching",
         episodes: {
           some: {
             isWatched: true,
@@ -151,8 +122,8 @@ export async function GET() {
           });
           const latest = watched[0];
 
-          // Fetch show details to check seasons
-          const details = await getTvShowDetails(show.tmdbId, apiKey);
+          // Reuse the resolved show details to avoid double-fetching TMDB
+          const details = show.tmdbDetails;
           if (!details) return null;
 
           let nextSeason = latest.seasonNumber;
@@ -236,6 +207,18 @@ export async function GET() {
              isNew = (Date.now() - airDate.getTime()) < (14 * 24 * 60 * 60 * 1000) || airDate.getTime() > Date.now();
           }
 
+          // Determine if this is the final episode of the final season
+          const regularSeasons = details.seasons?.filter((s: any) => s.season_number > 0) || [];
+          let lastSeasonNum = 0;
+          let lastEpisodeNum = 0;
+          if (regularSeasons.length > 0) {
+            const sortedSeasons = [...regularSeasons].sort((a: any, b: any) => b.season_number - a.season_number);
+            const lastSeasonMeta = sortedSeasons[0];
+            lastSeasonNum = lastSeasonMeta.season_number;
+            lastEpisodeNum = lastSeasonMeta.episode_count;
+          }
+          const isLastEpisodeOfLastSeason = (nextSeason === lastSeasonNum) && (nextEpisode === lastEpisodeNum);
+
           return {
             showId: show.id,
             showTitle: show.title,
@@ -253,6 +236,7 @@ export async function GET() {
             daysUntil,
             totalEpisodesWatched: watchedCount,
             totalWatchTimeMinutes,
+            isLastEpisodeOfLastSeason,
           };
         })
       )
@@ -266,7 +250,6 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      watchlistMovies,
       watchNextEpisodes: sortedWatchNextEpisodes,
     });
   } catch (error) {

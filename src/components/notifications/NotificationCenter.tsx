@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -114,7 +114,7 @@ export function NotificationCenter() {
 
       {/* Popover Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl glass-panel border border-white/10 bg-zinc-950/95 backdrop-blur-2xl shadow-2xl p-4 z-[100] space-y-3">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl p-4 z-[100] space-y-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-yellow-400 text-xl">notifications</span>

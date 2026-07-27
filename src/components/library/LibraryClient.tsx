@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MovieModal } from "@/components/movie/MovieModal";
 import { TvShowModal } from "@/components/tv/TvShowModal";
+// import { GameModal } from "@/components/game/GameModal";
 import { WatchNextSection } from "./WatchNextSection";
 import { RatingsSection } from "./RatingsSection";
 import { TrackedShowsSection } from "./TrackedShowsSection";
+// import { TrackedGamesSection } from "./TrackedGamesSection";
 
 export type LibraryEntry = {
   movieId: number;
@@ -36,10 +38,17 @@ export function LibraryClient({
   const [localWatchNext, setLocalWatchNext] = useState<any[]>([]);
   const [ratedMovies, setRatedMovies] = useState<any[]>([]);
   const [localShows, setLocalShows] = useState<any[]>([]);
+  const [localGames, setLocalGames] = useState<any[]>([]);
 
   const [isWatchNextLoading, setIsWatchNextLoading] = useState(true);
+  const [isWatchlistMoviesLoading, setIsWatchlistMoviesLoading] = useState(true);
   const [isRatingsLoading, setIsRatingsLoading] = useState(true);
   const [isShowsLoading, setIsShowsLoading] = useState(true);
+  const [isGamesLoading, setIsGamesLoading] = useState(false);
+
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
+  const [hasFetchedWatchNext, setHasFetchedWatchNext] = useState(false);
 
   const [ratingsPagination, setRatingsPagination] = useState<{
     currentPage: number;
@@ -63,35 +72,111 @@ export function LibraryClient({
     (m) => !userLibrary.ratings.some((r) => r.movieId === m.id)
   );
 
+  // Keep latest states in refs to avoid recreating callback dependencies
+  const watchlistMoviesRef = useRef<any[]>([]);
+  const localWatchNextRef = useRef<any[]>([]);
+  const ratedMoviesRef = useRef<any[]>([]);
+  const localShowsRef = useRef<any[]>([]);
+  const localGamesRef = useRef<any[]>([]);
+
+  useEffect(() => { watchlistMoviesRef.current = watchlistMovies; }, [watchlistMovies]);
+  useEffect(() => { localWatchNextRef.current = localWatchNext; }, [localWatchNext]);
+  useEffect(() => { ratedMoviesRef.current = ratedMovies; }, [ratedMovies]);
+  useEffect(() => { localShowsRef.current = localShows; }, [localShows]);
+  useEffect(() => { localGamesRef.current = localGames; }, [localGames]);
+
+  // Load from localStorage on mount (immediate hydration on client side)
+  useEffect(() => {
+    try {
+      const cachedWatchNext = localStorage.getItem("lib_watch_next");
+      if (cachedWatchNext) {
+        setLocalWatchNext(JSON.parse(cachedWatchNext));
+        setIsWatchNextLoading(false);
+      }
+      const cachedWatchlist = localStorage.getItem("lib_watchlist_movies");
+      if (cachedWatchlist) {
+        setWatchlistMovies(JSON.parse(cachedWatchlist));
+        setIsWatchlistMoviesLoading(false);
+      }
+      const cachedShows = localStorage.getItem("lib_shows");
+      if (cachedShows) {
+        const parsed = JSON.parse(cachedShows);
+        setLocalShows(parsed.shows || []);
+        setShowsPagination(parsed.pagination || null);
+        setHasMoreShows(1 < (parsed.pagination?.totalPages || 0));
+        setIsShowsLoading(false);
+      }
+      // const cachedGames = localStorage.getItem("lib_games");
+      // if (cachedGames) {
+      //   setLocalGames(JSON.parse(cachedGames));
+      //   setIsGamesLoading(false);
+      // }
+      const cachedRatings = localStorage.getItem("lib_ratings_1");
+      if (cachedRatings) {
+        const parsed = JSON.parse(cachedRatings);
+        setRatedMovies(parsed.ratedMovies || []);
+        setRatingsPagination(parsed.pagination || null);
+        setIsRatingsLoading(false);
+      }
+    } catch (e) {
+      console.error("[LOCALSTORAGE_CACHE] Failed to restore library cache:", e);
+    }
+  }, []);
+
   // Helper fetch functions
   const fetchWatchNext = useCallback(async () => {
     try {
-      setIsWatchNextLoading(true);
+      setIsWatchNextLoading(localWatchNextRef.current.length === 0);
       const res = await fetch("/api/user/library/watch-next");
       if (res.ok) {
         const data = await res.json();
-        setWatchlistMovies(data.watchlistMovies || []);
-        setLocalWatchNext(data.watchNextEpisodes || []);
+        const episodes = data.watchNextEpisodes || [];
+        setLocalWatchNext(episodes);
+        localStorage.setItem("lib_watch_next", JSON.stringify(episodes));
       }
     } catch (err) {
       console.error(err);
     } finally {
       setIsWatchNextLoading(false);
+      setHasFetchedWatchNext(true);
+    }
+  }, []);
+
+  const fetchWatchlistMovies = useCallback(async () => {
+    try {
+      setIsWatchlistMoviesLoading(watchlistMoviesRef.current.length === 0);
+      const res = await fetch("/api/user/library/watchlist-movies");
+      if (res.ok) {
+        const data = await res.json();
+        const movies = data.watchlistMovies || [];
+        setWatchlistMovies(movies);
+        localStorage.setItem("lib_watchlist_movies", JSON.stringify(movies));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsWatchlistMoviesLoading(false);
     }
   }, []);
 
   const fetchRatings = useCallback(async (page: number) => {
     try {
-      setIsRatingsLoading(true);
+      setIsRatingsLoading(page === 1 ? ratedMoviesRef.current.length === 0 : true);
       const res = await fetch(`/api/user/library/ratings?page=${page}`);
       if (res.ok) {
         const data = await res.json();
-        setRatedMovies(data.ratedMovies || []);
-        setRatingsPagination({
-          currentPage: data.ratedMovies.length > 0 ? page : 0,
+        const movies = data.ratedMovies || [];
+        setRatedMovies(movies);
+        const pagination = {
+          currentPage: movies.length > 0 ? page : 0,
           totalPages: data.totalPages,
           totalItems: data.totalItems,
-        });
+        };
+        setRatingsPagination(pagination);
+        
+        if (page === 1) {
+          localStorage.setItem("lib_ratings_1", JSON.stringify({ ratedMovies: movies, pagination }));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -102,18 +187,22 @@ export function LibraryClient({
 
   const fetchShows = useCallback(async () => {
     try {
-      setIsShowsLoading(true);
+      setIsShowsLoading(localShowsRef.current.length === 0);
       const res = await fetch(`/api/user/library/shows?page=1`);
       if (res.ok) {
         const data = await res.json();
-        setLocalShows(data.shows || []);
+        const shows = data.shows || [];
+        setLocalShows(shows);
         setShowsPage(1);
-        setShowsPagination({
+        const pagination = {
           currentPage: 1,
           totalPages: data.totalPages,
           totalItems: data.totalItems,
-        });
+        };
+        setShowsPagination(pagination);
         setHasMoreShows(1 < data.totalPages);
+        
+        localStorage.setItem("lib_shows", JSON.stringify({ shows, pagination }));
       }
     } catch (err) {
       console.error(err);
@@ -122,14 +211,44 @@ export function LibraryClient({
     }
   }, []);
 
-  // On mount
+  // const fetchGames = useCallback(async () => {
+  //   try {
+  //     setIsGamesLoading(localGamesRef.current.length === 0);
+  //     const res = await fetch("/api/games");
+  //     if (res.ok) {
+  //       const data = await res.json();
+  //       const games = data || [];
+  //       setLocalGames(games);
+  //       localStorage.setItem("lib_games", JSON.stringify(games));
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setIsGamesLoading(false);
+  //   }
+  // }, []);
+
+  // On mount: fetch TV shows with new episodes immediately (highest priority)
   useEffect(() => {
     fetchWatchNext();
-    fetchShows();
-  }, [fetchWatchNext, fetchShows]);
+  }, [fetchWatchNext]);
 
-  // When ratingsPage changes
+  // Load secondary data ONLY after the TV Shows (New Episodes) fresh request has resolved!
   useEffect(() => {
+    if (!hasFetchedWatchNext) return;
+
+    fetchWatchlistMovies();
+    fetchShows();
+    fetchRatings(1);
+  }, [hasFetchedWatchNext, fetchWatchlistMovies, fetchShows, fetchRatings]);
+
+  // When ratingsPage changes (subsequent changes, skipping initial mount)
+  const isFirstRatingsMount = useRef(true);
+  useEffect(() => {
+    if (isFirstRatingsMount.current) {
+      isFirstRatingsMount.current = false;
+      return;
+    }
     fetchRatings(ratingsPage);
   }, [ratingsPage, fetchRatings]);
 
@@ -206,8 +325,10 @@ export function LibraryClient({
   const handleLibraryUpdate = () => {
     router.refresh();
     fetchWatchNext();
+    fetchWatchlistMovies();
     fetchRatings(ratingsPage);
     fetchShows();
+    // fetchGames();
   };
 
   const handleMarkWatched = async (ep: any) => {
@@ -227,7 +348,7 @@ export function LibraryClient({
         }),
       });
       if (res.ok) {
-        if (ep.remainingCount === 0) {
+        if (ep.isLastEpisodeOfLastSeason) {
           setLocalWatchNext((prev) => prev.filter((e) => e.showId !== showId));
           setFinishedShows((prev) => [...prev, ep]);
         } else {
@@ -281,7 +402,8 @@ export function LibraryClient({
           handleMarkWatched={handleMarkWatched}
           setSelectedTvShowId={setSelectedTvShowId}
           setSelectedMovie={setSelectedMovie}
-          loading={isWatchNextLoading}
+          watchNextLoading={isWatchNextLoading}
+          watchlistMoviesLoading={isWatchlistMoviesLoading}
         />
 
         <RatingsSection
@@ -299,6 +421,15 @@ export function LibraryClient({
           setSelectedTvShowId={setSelectedTvShowId}
           loading={isShowsLoading}
         />
+
+        {/* <TrackedGamesSection
+          localGames={localGames}
+          setSelectedGameId={(id) => {
+            setSelectedGameId(id);
+            setIsGameModalOpen(true);
+          }}
+          loading={isGamesLoading}
+        /> */}
       </section>
 
       {/* Movie Modal */}
@@ -317,6 +448,19 @@ export function LibraryClient({
         onClose={() => setSelectedTvShowId(null)}
         onLibraryUpdate={handleLibraryUpdate}
       />
+
+      {/* <GameModal
+        gameId={selectedGameId}
+        isOpen={isGameModalOpen}
+        onClose={() => setIsGameModalOpen(false)}
+        onLibraryUpdate={handleLibraryUpdate}
+        onSelectMovieId={(id) => {
+          setSelectedMovie({ id });
+        }}
+        onSelectTvShowId={(id) => {
+          setSelectedTvShowId(id);
+        }}
+      /> */}
     </main>
   );
 }

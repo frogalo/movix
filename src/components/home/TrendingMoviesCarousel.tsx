@@ -24,12 +24,14 @@ interface TrendingMoviesCarouselProps {
   onMovieSelect: (movie: Movie) => void;
   isGrid?: boolean;
   onToggleGrid?: () => void;
-  userLibrary?: { watchlists: any[], ratings: any[], tvShows?: any[] };
+  userLibrary?: { watchlists: any[], ratings: any[], tvShows?: any[], games?: any[] };
   onLoadMore?: () => void;
   showMovies: boolean;
   showTv: boolean;
+  showGames: boolean;
   onToggleMovies: () => void;
   onToggleTv: () => void;
+  onToggleGames: () => void;
 }
 
 export function TrendingMoviesCarousel({
@@ -41,8 +43,10 @@ export function TrendingMoviesCarousel({
   onLoadMore,
   showMovies,
   showTv,
+  showGames,
   onToggleMovies,
   onToggleTv,
+  onToggleGames,
 }: TrendingMoviesCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -74,7 +78,7 @@ export function TrendingMoviesCarousel({
       <motion.div layout={!isMobile} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4 flex-wrap">
           <h2 className="font-headline-lg text-[24px] md:text-[32px] text-white">
-            {isGrid ? 'All Trending Movies & TV' : 'Trending Movies & TV Shows'}
+            {isGrid ? 'All Trending Media' : 'Trending Media'}
           </h2>
           
           <div className="flex items-center gap-1 bg-zinc-900/80 border border-white/10 rounded-xl p-1 shadow-lg shrink-0">
@@ -98,6 +102,16 @@ export function TrendingMoviesCarousel({
             >
               S
             </button>
+            {/* <button
+              onClick={onToggleGames}
+              className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition-all duration-200 touch-manipulation ${
+                showGames
+                  ? "bg-emerald-500 text-zinc-950 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              G
+            </button> */}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -145,10 +159,12 @@ export function TrendingMoviesCarousel({
           {movies.map((movie, index) => {
             const title = movie.title || movie.name || 'Unknown';
             const releaseDate = movie.release_date || movie.first_air_date || '';
-            const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
+            const isGame = movie.media_type === 'game';
+            const isTv = !isGame && (movie.media_type === 'tv' || (!movie.title && !!movie.name));
             const userRating = userLibrary?.ratings?.find(r => r.movieId === movie.id)?.rating;
-            const inWatchlist = !isTv && userLibrary?.watchlists?.some(w => w.movieId === movie.id) && !userRating;
+            const inWatchlist = !isTv && !isGame && userLibrary?.watchlists?.some(w => w.movieId === movie.id) && !userRating;
             const isTrackedTv = isTv && userLibrary?.tvShows?.some(s => s.tmdbId === movie.id);
+            const isTrackedGame = isGame && userLibrary?.games?.some(g => g.gameId === movie.id);
 
             return (
               <motion.div
@@ -166,7 +182,7 @@ export function TrendingMoviesCarousel({
                     <ImageWithLoader
                       alt={title}
                       className="w-full h-full object-cover"
-                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                      src={movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                       loaderSize={40}
                     />
                   ) : (
@@ -186,6 +202,11 @@ export function TrendingMoviesCarousel({
                         <span className="material-symbols-outlined text-[14px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>live_tv</span>
                       </div>
                     )}
+                    {isTrackedGame && (
+                      <div className="bg-black/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center border border-white/20 shadow-lg">
+                        <span className="material-symbols-outlined text-[14px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>sports_esports</span>
+                      </div>
+                    )}
                     {userRating && (
                       <div className="bg-black/80 backdrop-blur-sm rounded-full px-2 py-1 flex items-center justify-center border border-white/20 shadow-lg gap-0.5">
                         <span className="material-symbols-outlined text-[12px] text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
@@ -196,11 +217,13 @@ export function TrendingMoviesCarousel({
                 
                   <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-20 pointer-events-none">
                     <div className={`backdrop-blur-sm rounded-md px-1.5 py-0.5 flex items-center justify-center border shadow-lg text-[9px] font-black tracking-wider ${
-                      isTv 
-                        ? "bg-purple-600/90 border-purple-400/30 text-white" 
-                        : "bg-yellow-500/90 border-yellow-400/30 text-black"
+                      isGame
+                        ? "bg-emerald-600/90 border-emerald-400/30 text-white"
+                        : isTv 
+                          ? "bg-purple-600/90 border-purple-400/30 text-white" 
+                          : "bg-yellow-500/90 border-yellow-400/30 text-black"
                     }`}>
-                      {isTv ? 'S' : 'M'}
+                      {isGame ? 'G' : (isTv ? 'S' : 'M')}
                     </div>
                   </div>
 

@@ -22,6 +22,7 @@ model User {
   watchlists              Watchlist[]
   ratings                 Rating[]
   tvShows                 TvShow[]
+  games                   UserGame[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   following               Follow[]                 @relation("UserFollows")
@@ -188,4 +189,45 @@ model TvEpisode {
 
   @@unique([showId, seasonNumber, episodeNumber])
   @@map("tv_episodes")
+}
+
+model UserGame {
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  gameId       Int         @map("game_id")
+  title        String
+  status       GameStatus  @default(BACKLOG)
+  rating       Int?
+  review       String?     @db.Text
+  posterPath   String?     @map("poster_path")
+  backdropPath String?     @map("backdrop_path")
+  platforms    String[]
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@map("user_games")
+}
+
+enum GameStatus {
+  BACKLOG
+  PLAYING
+  COMPLETED
+  DROPPED
+}
+
+model MediaGameLink {
+  id           String   @id @default(cuid())
+  gameId       Int      @map("game_id")
+  gameTitle    String   @map("game_title")
+  mediaType    String   @map("media_type") // "movie" or "tv"
+  mediaId      Int      @map("media_id")   // TMDB / TVDB ID
+  mediaTitle   String   @map("media_title")
+  confidence   Float    @default(1.0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([gameId, mediaType, mediaId])
+  @@map("media_game_links")
 }
