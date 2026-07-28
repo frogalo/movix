@@ -16,8 +16,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client (reads schema only — no DB connection needed)
-RUN npx prisma generate
+# Generate Prisma client (reads schema only, but config checks for env variables)
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" npx prisma generate
 
 # Build Next.js in standalone mode.
 # DATABASE_URL is a dummy — all pages are force-dynamic so no DB queries
