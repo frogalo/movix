@@ -10,6 +10,10 @@ import { RatingsSection } from "./RatingsSection";
 import { TrackedShowsSection } from "./TrackedShowsSection";
 // import { TrackedGamesSection } from "./TrackedGamesSection";
 
+// Bump this version whenever the localStorage cache schema changes.
+// Old caches with a different version are automatically cleared on mount.
+const CACHE_VERSION = "v2";
+
 export type LibraryEntry = {
   movieId: number;
   rating?: number | null;
@@ -48,7 +52,6 @@ export function LibraryClient({
 
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [isGameModalOpen, setIsGameModalOpen] = useState(false);
-  const [hasFetchedWatchNext, setHasFetchedWatchNext] = useState(false);
 
   const [ratingsPagination, setRatingsPagination] = useState<{
     currentPage: number;
@@ -88,35 +91,57 @@ export function LibraryClient({
   // Load from localStorage on mount (immediate hydration on client side)
   useEffect(() => {
     try {
+      // Invalidate caches from older schema versions
+      const storedVersion = localStorage.getItem("lib_cache_version");
+      if (storedVersion !== CACHE_VERSION) {
+        [
+          "lib_watch_next",
+          "lib_watchlist_movies",
+          "lib_shows",
+          "lib_ratings_1",
+          "lib_games",
+        ].forEach((key) => localStorage.removeItem(key));
+        localStorage.setItem("lib_cache_version", CACHE_VERSION);
+        // Skip hydration – fresh data will be fetched below
+        return;
+      }
+
       const cachedWatchNext = localStorage.getItem("lib_watch_next");
       if (cachedWatchNext) {
-        setLocalWatchNext(JSON.parse(cachedWatchNext));
-        setIsWatchNextLoading(false);
+        const parsed = JSON.parse(cachedWatchNext);
+        if (Array.isArray(parsed)) {
+          setLocalWatchNext(parsed);
+          setIsWatchNextLoading(false);
+        }
       }
       const cachedWatchlist = localStorage.getItem("lib_watchlist_movies");
       if (cachedWatchlist) {
-        setWatchlistMovies(JSON.parse(cachedWatchlist));
-        setIsWatchlistMoviesLoading(false);
+        const parsed = JSON.parse(cachedWatchlist);
+        if (Array.isArray(parsed)) {
+          setWatchlistMovies(parsed);
+          setIsWatchlistMoviesLoading(false);
+        }
       }
       const cachedShows = localStorage.getItem("lib_shows");
       if (cachedShows) {
         const parsed = JSON.parse(cachedShows);
-        setLocalShows(parsed.shows || []);
-        setShowsPagination(parsed.pagination || null);
-        setHasMoreShows(1 < (parsed.pagination?.totalPages || 0));
-        setIsShowsLoading(false);
+        // Guard: must be an object with a `shows` array, not a plain array (old format)
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Array.isArray(parsed.shows)) {
+          setLocalShows(parsed.shows);
+          setShowsPagination(parsed.pagination || null);
+          setHasMoreShows(1 < (parsed.pagination?.totalPages || 0));
+          setIsShowsLoading(false);
+        }
       }
-      // const cachedGames = localStorage.getItem("lib_games");
-      // if (cachedGames) {
-      //   setLocalGames(JSON.parse(cachedGames));
-      //   setIsGamesLoading(false);
-      // }
       const cachedRatings = localStorage.getItem("lib_ratings_1");
       if (cachedRatings) {
         const parsed = JSON.parse(cachedRatings);
-        setRatedMovies(parsed.ratedMovies || []);
-        setRatingsPagination(parsed.pagination || null);
-        setIsRatingsLoading(false);
+        // Guard: must be an object with a `ratedMovies` array, not a plain array (old format)
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Array.isArray(parsed.ratedMovies)) {
+          setRatedMovies(parsed.ratedMovies);
+          setRatingsPagination(parsed.pagination || null);
+          setIsRatingsLoading(false);
+        }
       }
     } catch (e) {
       console.error("[LOCALSTORAGE_CACHE] Failed to restore library cache:", e);
@@ -138,7 +163,6 @@ export function LibraryClient({
       console.error(err);
     } finally {
       setIsWatchNextLoading(false);
-      setHasFetchedWatchNext(true);
     }
   }, []);
 
@@ -228,19 +252,14 @@ export function LibraryClient({
   //   }
   // }, []);
 
-  // On mount: fetch TV shows with new episodes immediately (highest priority)
+  // On mount: fetch all sections in parallel so ratings/shows don't wait on WatchNext
   useEffect(() => {
     fetchWatchNext();
-  }, [fetchWatchNext]);
-
-  // Load secondary data ONLY after the TV Shows (New Episodes) fresh request has resolved!
-  useEffect(() => {
-    if (!hasFetchedWatchNext) return;
-
     fetchWatchlistMovies();
     fetchShows();
     fetchRatings(1);
-  }, [hasFetchedWatchNext, fetchWatchlistMovies, fetchShows, fetchRatings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When ratingsPage changes (subsequent changes, skipping initial mount)
   const isFirstRatingsMount = useRef(true);
