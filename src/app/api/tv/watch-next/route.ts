@@ -36,34 +36,48 @@ export async function GET(req: Request) {
       return NextResponse.json(null);
     }
 
-    const watched = show.episodes.filter((e: any) => e.isWatched);
-    if (watched.length === 0) return NextResponse.json(null);
-
-    watched.sort((a: any, b: any) => {
-      if (a.seasonNumber !== b.seasonNumber) return b.seasonNumber - a.seasonNumber;
-      return b.episodeNumber - a.episodeNumber;
-    });
-    const latest = watched[0];
-
     const details = await getTvShowDetails(show.tmdbId, apiKey);
     if (!details) return NextResponse.json(null);
 
-    let nextSeason = latest.seasonNumber;
-    let nextEpisode = latest.episodeNumber + 1;
+    const watched = show.episodes.filter((e: any) => e.isWatched);
+    
+    let nextSeason = 1;
+    let nextEpisode = 1;
 
-    const currentSeasonMeta = details.seasons?.find((s: any) => s.season_number === latest.seasonNumber);
-    if (currentSeasonMeta) {
-      if (nextEpisode > currentSeasonMeta.episode_count) {
-        const nextSeasonMeta = details.seasons?.find((s: any) => s.season_number === latest.seasonNumber + 1);
-        if (nextSeasonMeta) {
-          nextSeason = latest.seasonNumber + 1;
-          nextEpisode = 1;
-        } else {
-          return NextResponse.json(null);
+    if (watched.length > 0) {
+      watched.sort((a: any, b: any) => {
+        if (a.seasonNumber !== b.seasonNumber) return b.seasonNumber - a.seasonNumber;
+        return b.episodeNumber - a.episodeNumber;
+      });
+      const latest = watched[0];
+
+      nextSeason = latest.seasonNumber;
+      nextEpisode = latest.episodeNumber + 1;
+
+      const currentSeasonMeta = details.seasons?.find((s: any) => s.season_number === latest.seasonNumber);
+      if (currentSeasonMeta) {
+        if (nextEpisode > currentSeasonMeta.episode_count) {
+          const nextSeasonMeta = details.seasons?.find((s: any) => s.season_number === latest.seasonNumber + 1);
+          if (nextSeasonMeta) {
+            nextSeason = latest.seasonNumber + 1;
+            nextEpisode = 1;
+          } else {
+            return NextResponse.json(null);
+          }
         }
+      } else {
+        return NextResponse.json(null);
       }
     } else {
-      return NextResponse.json(null);
+      // Find the first regular season (season_number > 0)
+      const regularSeasons = details.seasons?.filter((s: any) => s.season_number > 0) || [];
+      if (regularSeasons.length > 0) {
+        const sortedSeasons = [...regularSeasons].sort((a: any, b: any) => a.season_number - b.season_number);
+        nextSeason = sortedSeasons[0].season_number;
+        nextEpisode = 1;
+      } else {
+        return NextResponse.json(null);
+      }
     }
 
     const seasonDetails = await getTvSeasonDetails(show.tmdbId, nextSeason, apiKey);
@@ -117,7 +131,7 @@ export async function GET(req: Request) {
     const watchedDates = show.episodes
       .filter((e: any) => e.isWatched && e.watchedAt)
       .map((e: any) => new Date(e.watchedAt!).getTime());
-    const lastWatchedTime = watchedDates.length > 0 ? Math.max(...watchedDates) : 0;
+    const lastWatchedTime = watchedDates.length > 0 ? Math.max(...watchedDates) : new Date(show.updatedAt).getTime();
 
     const airDate = airDateStr ? new Date(airDateStr) : null;
     let isNew = false;
