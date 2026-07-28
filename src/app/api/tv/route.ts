@@ -80,6 +80,14 @@ export async function POST(req: Request) {
       }
     });
 
+    // Invalidate Watch Next cache for this user
+    const globalForWatchNext = globalThis as unknown as {
+      watchNextCache?: Map<string, any>;
+    };
+    if (globalForWatchNext.watchNextCache) {
+      globalForWatchNext.watchNextCache.delete(userId);
+    }
+
     return NextResponse.json(show);
   } catch (error) {
     console.error('[TV_POST]', error);
@@ -110,6 +118,14 @@ export async function DELETE(req: Request) {
         }
       }
     });
+
+    // Invalidate Watch Next cache for this user
+    const globalForWatchNext = globalThis as unknown as {
+      watchNextCache?: Map<string, any>;
+    };
+    if (globalForWatchNext.watchNextCache) {
+      globalForWatchNext.watchNextCache.delete(userId);
+    }
 
     return new NextResponse('OK', { status: 200 });
   } catch (error) {

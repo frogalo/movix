@@ -163,6 +163,14 @@ export async function POST(request: Request) {
       }
     }
 
+    // Invalidate Watch Next cache for this user
+    const globalForWatchNext = globalThis as unknown as {
+      watchNextCache?: Map<string, any>;
+    };
+    if (globalForWatchNext.watchNextCache) {
+      globalForWatchNext.watchNextCache.delete(userId);
+    }
+
     return NextResponse.json({
       success: true,
       showsCount: importedShowsCount,

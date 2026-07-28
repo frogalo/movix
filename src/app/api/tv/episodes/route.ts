@@ -230,6 +230,14 @@ export async function POST(req: Request) {
       data: { updatedAt: new Date() },
     });
 
+    // Invalidate Watch Next cache for this user
+    const globalForWatchNext = globalThis as unknown as {
+      watchNextCache?: Map<string, any>;
+    };
+    if (globalForWatchNext.watchNextCache) {
+      globalForWatchNext.watchNextCache.delete(userId);
+    }
+
     return NextResponse.json(ep);
   } catch (error) {
     console.error('[EPISODES_POST]', error);
