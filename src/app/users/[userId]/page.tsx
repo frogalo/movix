@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { FollowButton } from "@/components/social/FollowButton";
 import { UserProfileClient } from "@/components/profile/UserProfileClient";

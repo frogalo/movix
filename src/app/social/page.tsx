@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { UserSearch, UserPlus, Search } from "lucide-react";
 import {
