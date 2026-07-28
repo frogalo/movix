@@ -46,8 +46,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema + migrations (needed for `prisma migrate deploy` at startup)
+# Copy Prisma schema + migrations + config (needed for `prisma migrate deploy` at startup)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 # Copy the pruned node_modules so that the Prisma CLI (and its engines/dependencies)
 # is fully available for running database migrations at startup.
