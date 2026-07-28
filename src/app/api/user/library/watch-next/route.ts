@@ -86,7 +86,7 @@ export async function GET() {
       return NextResponse.json({ error: 'TMDB API Key missing' }, { status: 500 });
     }
 
-    // 1. Fetch watch next episodes
+    // 1. Fetch watch next episodes (limit to 30 most recently active/updated shows to prevent TMDB API rate-limiting and timeouts)
     const activeShows = await prisma.tvShow.findMany({
       where: {
         userId,
@@ -94,6 +94,10 @@ export async function GET() {
           notIn: ["completed", "dropped"],
         },
       },
+      orderBy: {
+        updatedAt: "desc",
+      },
+      take: 30,
       include: {
         episodes: true,
       },
