@@ -9,9 +9,3 @@ services:
       - .env.production
     ports:
       - "3014:3014"
-    volumes:
-      # Persist the Next.js build cache across rebuilds for faster incremental builds
-      - nextjs_build_cache:/app/.next/cache
-
-volumes:
-  nextjs_build_cache:
