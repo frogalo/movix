@@ -62,7 +62,7 @@ export function EmailVerificationBanner({
             <button
               onClick={handleResend}
               disabled={isPending}
-              className="rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-bold text-zinc-950 transition hover:bg-yellow-300 disabled:opacity-50"
+              className="rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-bold text-[#241a00] transition hover:bg-yellow-300 disabled:opacity-50"
             >
               {isPending ? "Sending..." : "Resend Email"}
             </button>

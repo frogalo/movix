@@ -15,7 +15,7 @@ export function SideNavBar() {
     path === "/" ? pathname === path : pathname.startsWith(path);
 
   const baseLinkStyle = "flex items-center gap-4 px-4 py-3 hover:bg-white/5 hover:backdrop-blur-md hover:translate-x-1 transition-all duration-200 rounded-lg";
-  const activeLinkStyle = "bg-yellow-400/10 text-yellow-400 border-l-4 border-yellow-400 rounded-lg";
+  const activeLinkStyle = "bg-yellow-400/10 text-yellow-400 rounded-lg";
   const inactiveLinkStyle = "text-zinc-500 hover:text-zinc-200";
 
   return (

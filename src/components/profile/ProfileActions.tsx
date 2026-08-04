@@ -250,7 +250,7 @@ export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps
                 type="button"
                 onClick={handleImportClick}
                 disabled={isImporting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 disabled:bg-zinc-800 text-black disabled:text-zinc-600 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 disabled:bg-zinc-800 text-black disabled:opacity-50 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
               >
                 {isImporting ? (
                   <div className="w-4 h-4 border-2 border-zinc-600 border-t-black rounded-full animate-spin"></div>
@@ -275,7 +275,7 @@ export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-900 border border-white/10 text-white disabled:text-zinc-600 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-900 border border-white/10 text-white disabled:opacity-50 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
               >
                 {isExporting ? (
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -300,7 +300,7 @@ export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps
                 type="button"
                 onClick={() => setShowClearConfirm(true)}
                 disabled={isClearing}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-650 hover:bg-red-600 disabled:bg-zinc-900 border border-transparent text-white disabled:text-zinc-600 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-650 hover:bg-red-600 disabled:bg-zinc-900 border border-transparent text-white disabled:opacity-50 text-xs font-bold uppercase tracking-wider transition cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px]">delete_forever</span>
                 Clear All Data

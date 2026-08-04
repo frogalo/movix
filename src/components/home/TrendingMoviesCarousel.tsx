@@ -86,7 +86,7 @@ export function TrendingMoviesCarousel({
               onClick={onToggleMovies}
               className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition-all duration-200 touch-manipulation ${
                 showMovies
-                  ? "bg-yellow-400 text-zinc-950 shadow-[0_0_10px_rgba(250,204,21,0.3)]"
+                  ? "bg-yellow-400 text-[#241a00] shadow-[0_0_10px_rgba(250,204,21,0.3)]"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
               }`}
             >
@@ -102,16 +102,6 @@ export function TrendingMoviesCarousel({
             >
               S
             </button>
-            {/* <button
-              onClick={onToggleGames}
-              className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition-all duration-200 touch-manipulation ${
-                showGames
-                  ? "bg-emerald-500 text-zinc-950 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-              }`}
-            >
-              G
-            </button> */}
           </div>
         </div>
         <div className="flex items-center gap-4">

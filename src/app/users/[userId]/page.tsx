@@ -364,9 +364,9 @@ export default async function UserProfilePage({ params }: Props) {
               <Clock className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
-            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-teal-400/20 transition-all">
+            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-[#caf6ff]/20 transition-all">
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Movie Watch Time</p>
-              <h4 className="text-3xl font-extrabold text-teal-400 font-headline-md truncate" title={movieTimeDisplay}>
+              <h4 className="text-3xl font-extrabold text-[#caf6ff] font-headline-md truncate" title={movieTimeDisplay}>
                 {movieTimeDisplay}
               </h4>
               <p className="text-xs text-zinc-400">
@@ -375,9 +375,9 @@ export default async function UserProfilePage({ params }: Props) {
               <Film className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
-            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-purple-400/20 transition-all">
+            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-[#d0bcff]/20 transition-all">
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">TV Watch Time</p>
-              <h4 className="text-3xl font-extrabold text-purple-400 font-headline-md truncate" title={tvTimeDisplay}>
+              <h4 className="text-3xl font-extrabold text-[#d0bcff] font-headline-md truncate" title={tvTimeDisplay}>
                 {tvTimeDisplay}
               </h4>
               <p className="text-xs text-zinc-400">
@@ -386,9 +386,9 @@ export default async function UserProfilePage({ params }: Props) {
               <Tv className="w-20 h-20 absolute -right-4 -bottom-4 text-white/5 group-hover:scale-110 transition-transform" />
             </div>
 
-            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-[#9cf0ff]/20 transition-all">
+            <div className="glass-panel space-y-3 rounded-2xl p-6 relative overflow-hidden group hover:border-[#ffe08b]/20 transition-all">
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">Movies Rated</p>
-              <h4 className="text-3xl font-extrabold text-[#9cf0ff] font-headline-md">
+              <h4 className="text-3xl font-extrabold text-[#ffe08b] font-headline-md">
                 {ratingsData.length}
               </h4>
               <p className="text-xs text-zinc-400">

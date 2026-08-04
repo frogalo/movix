@@ -31,7 +31,7 @@ export default function ResetPasswordPage({ searchParams }: Props) {
             </p>
             <Link
               href="/forgot-password"
-              className="inline-block rounded-full bg-yellow-400 px-8 py-3 text-sm font-bold text-zinc-950 transition hover:bg-yellow-300 hover:shadow-[0_0_20px_rgba(255,204,0,0.4)]"
+              className="inline-block rounded-full bg-yellow-400 px-8 py-3 text-sm font-bold text-[#241a00] transition hover:bg-yellow-300 hover:shadow-[0_0_20px_rgba(255,204,0,0.4)]"
             >
               Request New Link
             </Link>
@@ -71,7 +71,7 @@ export default function ResetPasswordPage({ searchParams }: Props) {
                 </div>
                 <Link
                   href="/login"
-                  className="block text-center rounded-full bg-yellow-400 px-8 py-3 text-sm font-bold text-zinc-950 transition hover:bg-yellow-300"
+                  className="block text-center rounded-full bg-yellow-400 px-8 py-3 text-sm font-bold text-[#241a00] transition hover:bg-yellow-300"
                 >
                   Log In
                 </Link>

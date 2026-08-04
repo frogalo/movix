@@ -270,7 +270,7 @@ export function TopRatedMoviesCarousel({
               onClick={onToggleMovies}
               className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition-all duration-200 touch-manipulation ${
                 showMovies
-                  ? "bg-yellow-400 text-zinc-950 shadow-[0_0_10px_rgba(250,204,21,0.3)]"
+                  ? "bg-yellow-400 text-[#241a00] shadow-[0_0_10px_rgba(250,204,21,0.3)]"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
               }`}
             >
@@ -303,7 +303,7 @@ export function TopRatedMoviesCarousel({
                 onClick={() => onToggleGenre(genre)}
                 className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? "bg-yellow-400 text-zinc-950 font-extrabold shadow-[0_0_10px_rgba(250,204,21,0.4)] border border-yellow-300"
+                    ? "bg-yellow-400 text-[#241a00] font-extrabold shadow-[0_0_10px_rgba(250,204,21,0.4)] border border-yellow-300"
                     : "bg-white/5 text-zinc-400 hover:text-zinc-200 border border-white/5 hover:bg-white/10"
                 }`}
               >
@@ -343,7 +343,7 @@ export function TopRatedMoviesCarousel({
             <p className="text-zinc-500 text-xs max-w-xs mb-5">Try clearing or adjusting your genre and decade filters.</p>
             <button
               onClick={onResetFilters}
-              className="px-4 py-2 rounded-xl bg-yellow-400 text-zinc-950 font-black text-xs uppercase shadow-[0_0_10px_rgba(250,204,21,0.3)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-yellow-400 text-[#241a00] font-black text-xs uppercase shadow-[0_0_10px_rgba(250,204,21,0.3)] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
             >
               Reset Filters
             </button>

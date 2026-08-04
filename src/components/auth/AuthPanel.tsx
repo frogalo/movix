@@ -71,7 +71,7 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
               type="button"
               onClick={() => setActiveTab("login")}
               className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "login" ? "bg-yellow-400 text-zinc-950" : "text-zinc-400"
+                activeTab === "login" ? "bg-[#ffcc00] text-[#241a00]" : "text-zinc-400"
               }`}
             >
               Log In
@@ -80,7 +80,7 @@ export function AuthPanel({ googleEnabled }: AuthPanelProps) {
               type="button"
               onClick={() => setActiveTab("register")}
               className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "register" ? "bg-yellow-400 text-zinc-950" : "text-zinc-400"
+                activeTab === "register" ? "bg-[#ffcc00] text-[#241a00]" : "text-zinc-400"
               }`}
             >
               Create Account

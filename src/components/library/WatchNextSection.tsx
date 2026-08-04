@@ -136,7 +136,7 @@ export function WatchNextSection({
                       {isFinished ? (
                         <div className="glass-panel flex w-full min-w-0 flex-col items-center justify-center rounded-2xl border border-yellow-400/50 bg-yellow-950/20 p-6 md:p-8 text-center shadow-[0_0_30px_rgba(250,204,21,0.2)] relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-yellow-500/10 to-transparent pointer-events-none" />
-                          <span className="material-symbols-outlined text-[48px] md:text-[64px] text-yellow-400 mb-4 animate-bounce">verified</span>
+                          <span className="material-symbols-outlined text-[48px] md:text-[64px] text-yellow-400 mb-4">verified</span>
                           <h4 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-lg">Congratulations!</h4>
                           <p className="text-sm md:text-base text-zinc-300 max-w-[80%] mx-auto">
                             You've finished watching <span className="font-bold text-white">{ep.showTitle}</span>.
