@@ -8,40 +8,19 @@ import { ImageWithLoader } from "@/components/common/ImageWithLoader";
 import { MovieModal } from "@/components/movie/MovieModal";
 import { TvShowModal } from "@/components/tv/TvShowModal";
 
-export interface EpisodeDetail {
-  seasonNumber: number;
-  episodeNumber: number;
-  episodeName: string | null;
-  timestamp: string;
-  user: { id: string; name: string | null; image: string | null };
-}
+import type {
+  EpisodeDetail,
+  FeedRatingItem,
+  FeedEpisodeGroupItem,
+  FeedGroupedItem,
+} from "@/app/api/social/feed/route";
 
-export interface FeedRatingItem {
-  type: "rating";
-  user: { id: string; name: string | null; image: string | null };
-  movieId: number;
-  rating: number | null;
-  vote: string | null;
-  timestamp: string;
-  posterUrl?: string | null;
-  backdropUrl?: string | null;
-  movieTitle?: string | null;
-}
-
-export interface FeedEpisodeGroupItem {
-  type: "episode_group";
-  user?: { id: string; name: string | null; image: string | null };
-  showTitle: string;
-  showPosterPath: string | null;
-  showTmdbId: number | null;
-  episodes: EpisodeDetail[];
-  latestTimestamp: string;
-  users: Array<{ id: string; name: string | null; image: string | null }>;
-  posterUrl?: string | null;
-  backdropUrl?: string | null;
-}
-
-export type FeedGroupedItem = FeedRatingItem | FeedEpisodeGroupItem;
+export type {
+  EpisodeDetail,
+  FeedRatingItem,
+  FeedEpisodeGroupItem,
+  FeedGroupedItem,
+};
 
 export interface DayGroup {
   dayLabel: string;
@@ -101,7 +80,7 @@ export function SocialFeedClient({
           ratings: data.ratings || [],
         });
       }
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {
@@ -132,7 +111,7 @@ export function SocialFeedClient({
             );
             if (tvMatch) tmdbId = tvMatch.id;
           }
-        } catch {}
+        } catch { /* ignore */ }
       }
 
       if (tmdbId) {
@@ -185,8 +164,9 @@ export function SocialFeedClient({
                       });
                     }
                     const row = uniqueEpisodeMap.get(key)!;
-                    if (ep.user && !row.users.some((u) => u.id === ep.user.id)) {
-                      row.users.push(ep.user);
+                    const epUser = ep.user;
+                    if (epUser && !row.users.some((u) => u.id === epUser.id)) {
+                      row.users.push(epUser);
                     }
                   });
                 }
@@ -272,7 +252,7 @@ export function SocialFeedClient({
                             </Link>
                           ) : (
                             <div className="flex -space-x-2 overflow-hidden shrink-0">
-                              {groupItem!.users.map((u) => (
+                              {(groupItem!.users || []).map((u) => (
                                 <Link
                                   key={u.id}
                                   href={`/users/${u.id}`}
@@ -304,7 +284,7 @@ export function SocialFeedClient({
                               </>
                             ) : (
                               <>
-                                {groupItem!.users.map((u, index) => (
+                                {(groupItem!.users || []).map((u, index) => (
                                   <span key={u.id}>
                                     <Link
                                       href={`/users/${u.id}`}
@@ -313,7 +293,7 @@ export function SocialFeedClient({
                                     >
                                       {u.name ?? "Movix Member"}
                                     </Link>
-                                    {index < groupItem!.users.length - 1 && ", "}
+                                    {index < (groupItem!.users || []).length - 1 && ", "}
                                   </span>
                                 ))}{" "}
                                 <span className="text-zinc-500">

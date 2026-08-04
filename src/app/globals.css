@@ -181,7 +181,7 @@ body {
 
 /* Avatar Initials Font */
 .font-avatar-initials {
-  font-family: 'Edu VIC WA NT Hand', cursive, sans-serif;
+  font-family: var(--font-edu-vic-hand), 'Edu VIC WA NT Hand', cursive, sans-serif;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.05em;

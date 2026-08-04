@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -68,7 +69,7 @@ export async function GET(
     if (tvdbId && !tmdbId) {
       console.log(`[TV_DETAILS] Resolving TVDB ID ${tvdbId} via TMDB Find...`);
       const findRes = await fetch(
-        `https://api.themoviedb.org/3/find/${tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
+        `${TMDB_BASE_URL}/find/${tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
       );
       if (findRes.ok) {
         const findData = await findRes.json();
@@ -99,8 +100,8 @@ export async function GET(
     }
 
     const [details, creditsData] = await Promise.all([
-      fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600),
-      fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600)
+      fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600),
+      fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600)
     ]);
     const credits = creditsData || { cast: [] };
 
@@ -130,15 +131,15 @@ export async function GET(
     if (!details) {
       if (!dbShow && !tvdbId) {
         const findData = await fetchWithCache(
-          `https://api.themoviedb.org/3/find/${id}?external_source=tvdb_id&api_key=${apiKey}`,
+          `${TMDB_BASE_URL}/find/${id}?external_source=tvdb_id&api_key=${apiKey}`,
           3600
         );
         const tvResult = findData?.tv_results?.[0];
         if (tvResult) {
           tmdbId = tvResult.id;
-          const retryDetails = await fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
+          const retryDetails = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600);
           if (retryDetails) {
-            const retryCredits = await fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600) || { cast: [] };
+            const retryCredits = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600) || { cast: [] };
             return await buildResponse(dbShow, retryDetails, retryCredits, resolveSeason(retryDetails, dbShow), tmdbId!, apiKey);
           }
         }
@@ -184,7 +185,7 @@ async function buildResponse(
 
   let episodes: any[] = [];
   const seasonData = await fetchWithCache(
-    `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}`,
+    `${TMDB_BASE_URL}/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}`,
     3600
   );
 

@@ -11,7 +11,6 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      // @ts-ignore
       include: {
         watchlists: true,
         ratings: true,
@@ -20,9 +19,9 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      watchlists: (user as any)?.watchlists || [],
-      ratings: (user as any)?.ratings || [],
-      tvShows: (user as any)?.tvShows || [],
+      watchlists: user?.watchlists || [],
+      ratings: user?.ratings || [],
+      tvShows: user?.tvShows || [],
     });
   } catch (error) {
     console.error('[USER_LIBRARY_GET]', error);

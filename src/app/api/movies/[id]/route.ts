@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -10,9 +11,9 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     }
 
     const [detailsRes, creditsRes, providersRes] = await Promise.all([
-      fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`),
-      fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${apiKey}`),
-      fetch(`https://api.themoviedb.org/3/movie/${id}/watch/providers?api_key=${apiKey}`)
+      fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${apiKey}`),
+      fetch(`${TMDB_BASE_URL}/movie/${id}/credits?api_key=${apiKey}`),
+      fetch(`${TMDB_BASE_URL}/movie/${id}/watch/providers?api_key=${apiKey}`)
     ]);
 
     const details = await detailsRes.json();

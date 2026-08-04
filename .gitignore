@@ -53,3 +53,4 @@ DESIGN.md
 
 # Explicitly allow .env.example to be committed
 !.env.example
+aislop-scan.json

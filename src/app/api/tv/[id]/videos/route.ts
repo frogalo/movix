@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
     }
 
     const res = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}/videos?language=en-US&api_key=${apiKey}`,
+      `${TMDB_BASE_URL}/tv/${id}/videos?language=en-US&api_key=${apiKey}`,
       { next: { revalidate: 3600 } }
     );
 

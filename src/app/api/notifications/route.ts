@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 ﻿import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +72,7 @@ export async function GET() {
       const tvPromises = userTvShows.map(async (show) => {
         if (!show.tmdbId) return null;
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/tv/${show.tmdbId}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/tv/${show.tmdbId}?api_key=${apiKey}`, {
             next: { revalidate: 3600 },
           });
           if (res.ok) {
@@ -100,7 +101,7 @@ export async function GET() {
               }
             }
           }
-        } catch {}
+        } catch { /* ignore */ }
         return null;
       });
 
@@ -122,7 +123,7 @@ export async function GET() {
     if (apiKey && userWatchlist.length > 0) {
       const moviePromises = userWatchlist.map(async (w) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/movie/${w.movieId}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/movie/${w.movieId}?api_key=${apiKey}`, {
             next: { revalidate: 3600 },
           });
           if (res.ok) {
@@ -147,7 +148,7 @@ export async function GET() {
               }
             }
           }
-        } catch {}
+        } catch { /* ignore */ }
         return null;
       });
 

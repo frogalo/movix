@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -7,6 +7,7 @@ export interface EpisodeDetail {
   episodeNumber: number;
   episodeName: string | null;
   timestamp: string;
+  user?: { id: string; name: string | null; image: string | null };
 }
 
 export interface FeedRatingItem {
@@ -16,16 +17,22 @@ export interface FeedRatingItem {
   rating: number | null;
   vote: string | null;
   timestamp: string;
+  posterUrl?: string | null;
+  backdropUrl?: string | null;
+  movieTitle?: string | null;
 }
 
 export interface FeedEpisodeGroupItem {
   type: "episode_group";
-  user: { id: string; name: string | null; image: string | null };
+  user?: { id: string; name: string | null; image: string | null };
   showTitle: string;
   showPosterPath: string | null;
   showTmdbId: number | null;
   episodes: EpisodeDetail[];
   latestTimestamp: string;
+  users: Array<{ id: string; name: string | null; image: string | null }>;
+  posterUrl?: string | null;
+  backdropUrl?: string | null;
 }
 
 export type FeedGroupedItem = FeedRatingItem | FeedEpisodeGroupItem;
@@ -146,7 +153,7 @@ export async function GET() {
         const isSameUserAndShow =
           last &&
           last.type === "episode_group" &&
-          last.user.id === item.user.id &&
+          last.user?.id === item.user.id &&
           last.showTitle.toLowerCase().trim() === item.showTitle.toLowerCase().trim();
 
         const isWithin24Hours =
@@ -182,6 +189,7 @@ export async function GET() {
               },
             ],
             latestTimestamp: item.timestamp,
+            users: [item.user],
           });
         }
       }

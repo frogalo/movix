@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { searchIgdbGames } from '@/lib/igdb';
 
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     
     // Fetch TMDB results (Movies and TV Shows)
     const tmdbPromise = fetch(
-      `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1&api_key=${apiKey}`
+      `${TMDB_BASE_URL}/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1&api_key=${apiKey}`
     )
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to search TMDB');

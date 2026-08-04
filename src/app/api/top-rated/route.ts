@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextRequest, NextResponse } from "next/server";
 
 const GENRE_MAP: { [key: string]: number[] } = {
@@ -42,8 +43,8 @@ export async function GET(req: NextRequest) {
 
         // 1. If no filters are active, use default curated top-rated lists
         if (!isGenreFiltered && !isDecadeFiltered) {
-            const movieUrl = `https://api.themoviedb.org/3/movie/top_rated?api_key=${apiKey}&page=${page}`;
-            const tvUrl = `https://api.themoviedb.org/3/tv/top_rated?api_key=${apiKey}&page=${page}`;
+            const movieUrl = `${TMDB_BASE_URL}/movie/top_rated?api_key=${apiKey}&page=${page}`;
+            const tvUrl = `${TMDB_BASE_URL}/tv/top_rated?api_key=${apiKey}&page=${page}`;
 
             const [movieRes, tvRes] = await Promise.all([
                 fetch(movieUrl, { next: { revalidate: 3600 } }),
@@ -111,8 +112,8 @@ export async function GET(req: NextRequest) {
             maxDate = `${highestYear}-12-31`;
         }
 
-        let movieUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=vote_average.desc&vote_count.gte=200&page=${page}`;
-        let tvUrl = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=vote_average.desc&vote_count.gte=50&page=${page}`;
+        let movieUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${apiKey}&sort_by=vote_average.desc&vote_count.gte=200&page=${page}`;
+        let tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${apiKey}&sort_by=vote_average.desc&vote_count.gte=50&page=${page}`;
 
         if (genreIds.length > 0) {
             const genresQuery = `&with_genres=${genreIds.join("|")}`;

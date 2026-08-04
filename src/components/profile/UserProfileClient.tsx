@@ -91,7 +91,7 @@ export function UserProfileClient({
           ratings: data.ratings || [],
         });
       }
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -63,14 +64,14 @@ export default async function Profile() {
     const movieRuntimes = await Promise.all(
       uniqueMovieIds.map(async (id) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${apiKey}`, {
             next: { revalidate: 3600 }
           });
           if (res.ok) {
             const data = await res.json();
             return data.runtime || 120;
           }
-        } catch {}
+        } catch { /* ignore */ }
         return 120; // fallback
       })
     );
@@ -87,7 +88,7 @@ export default async function Profile() {
     const tvRuntimes = await Promise.all(
       uniqueTvIds.map(async (id) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/tv/${id}?api_key=${apiKey}`, {
             next: { revalidate: 3600 }
           });
           if (res.ok) {
@@ -95,7 +96,7 @@ export default async function Profile() {
             const runtime = data.episode_run_time?.[0] || 45;
             return { id, runtime };
           }
-        } catch {}
+        } catch { /* ignore */ }
         return { id, runtime: 45 };
       })
     );

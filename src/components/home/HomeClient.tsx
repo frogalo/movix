@@ -319,7 +319,7 @@ function HomeContent() {
         onClose={() => setIsGameModalOpen(false)}
         onLibraryUpdate={fetchLibrary}
         onSelectMovieId={(id) => {
-          setSelectedMovie({ id } as any);
+          setSelectedMovie({ id } as Movie);
           setIsModalOpen(true);
         }}
         onSelectTvShowId={(id) => {

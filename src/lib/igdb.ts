@@ -1,10 +1,12 @@
+import { IGDB_BASE_URL } from "./config";
+
 interface IgdbTokenCache {
   accessToken: string;
   expiresAt: number;
 }
 
 const cacheKey = Symbol.for("movix.igdbTokenCache");
-const globalSymbol = global as unknown as { [cacheKey]?: IgdbTokenCache };
+const globalSymbol = globalThis as typeof globalThis & { [cacheKey]?: IgdbTokenCache };
 
 async function getIgdbToken(): Promise<string> {
   const clientId = process.env.TWITCH_CLIENT_ID;
@@ -62,7 +64,7 @@ export async function queryIgdb(endpoint: string, queryBody: string): Promise<an
       throw new Error("TWITCH_CLIENT_ID is missing.");
     }
 
-    const res = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
+    const res = await fetch(`${IGDB_BASE_URL}/${endpoint}`, {
       method: "POST",
       headers: {
         "Client-ID": clientId,

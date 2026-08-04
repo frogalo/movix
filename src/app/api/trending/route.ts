@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextRequest, NextResponse } from "next/server";
 import { getPopularGames } from "@/lib/igdb";
 
@@ -5,7 +6,7 @@ export async function GET(req: NextRequest) {
     const apiKey = process.env.TMDB_API_KEY;
     const { searchParams } = new URL(req.url);
     const page = searchParams.get("page") || "1";
-    const url = `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}&page=${page}`;
+    const url = `${TMDB_BASE_URL}/trending/all/week?api_key=${apiKey}&page=${page}`;
 
     try {
         const res = await fetch(url);

@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -51,7 +52,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
     ? await Promise.all(
         movieIds.map(async (id) => {
           try {
-            const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
+            const res = await fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${apiKey}`, {
               next: { revalidate: 3600 },
             });
             if (res.ok) {
@@ -63,7 +64,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
                 title: data.title as string,
               };
             }
-          } catch {}
+          } catch { /* ignore */ }
           return { id, posterPath: null, backdropPath: null, title: null };
         })
       )
@@ -92,7 +93,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
       uniqueTvKeys.map(async (item) => {
         try {
           if (item.tmdbId) {
-            const res = await fetch(`https://api.themoviedb.org/3/tv/${item.tmdbId}?api_key=${apiKey}`, {
+            const res = await fetch(`${TMDB_BASE_URL}/tv/${item.tmdbId}?api_key=${apiKey}`, {
               next: { revalidate: 3600 },
             });
             if (res.ok) {
@@ -108,7 +109,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
           }
 
           const searchRes = await fetch(
-            `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(item.title)}`,
+            `${TMDB_BASE_URL}/search/tv?api_key=${apiKey}&query=${encodeURIComponent(item.title)}`,
             { next: { revalidate: 3600 } }
           );
           if (searchRes.ok) {
@@ -121,7 +122,7 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
               tvBackdropMap.set(item.title.toLowerCase().trim(), match.backdrop_path);
             }
           }
-        } catch {}
+        } catch { /* ignore */ }
       })
     );
   }

@@ -1,14 +1,15 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { fetchWithCache } from '@/lib/tmdbCache';
 
 async function getTvShowDetails(tmdbId: number, apiKey: string) {
-  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
+  return fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600);
 }
 
 async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: string) {
-  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
+  return fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
 }
 
 export async function GET(req: Request) {

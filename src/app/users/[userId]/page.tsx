@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -120,7 +121,7 @@ export default async function UserProfilePage({ params }: Props) {
             let foundTmdbId: number | null = s.tmdbId;
 
             if (s.tmdbId) {
-              const res = await fetch(`https://api.themoviedb.org/3/tv/${s.tmdbId}?api_key=${apiKey}`, {
+              const res = await fetch(`${TMDB_BASE_URL}/tv/${s.tmdbId}?api_key=${apiKey}`, {
                 next: { revalidate: 3600 },
               });
               if (res.ok) {
@@ -131,7 +132,7 @@ export default async function UserProfilePage({ params }: Props) {
 
             if (!foundPoster && s.tvdbId) {
               const findRes = await fetch(
-                `https://api.themoviedb.org/3/find/${s.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`,
+                `${TMDB_BASE_URL}/find/${s.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`,
                 { next: { revalidate: 3600 } }
               );
               if (findRes.ok) {
@@ -146,7 +147,7 @@ export default async function UserProfilePage({ params }: Props) {
 
             if (!foundPoster) {
               const searchRes = await fetch(
-                `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(s.title)}`,
+                `${TMDB_BASE_URL}/search/tv?api_key=${apiKey}&query=${encodeURIComponent(s.title)}`,
                 { next: { revalidate: 3600 } }
               );
               if (searchRes.ok) {
@@ -189,14 +190,14 @@ export default async function UserProfilePage({ params }: Props) {
     const results = await Promise.all(
       uniqueIds.map(async (id) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${apiKey}`, {
             next: { revalidate: 3600 },
           });
           if (res.ok) {
             const data = await res.json();
             return { id, posterPath: data.poster_path as string | null, title: data.title as string };
           }
-        } catch {}
+        } catch { /* ignore */ }
         return { id, posterPath: null, title: `Movie #${id}` };
       })
     );
@@ -219,14 +220,14 @@ export default async function UserProfilePage({ params }: Props) {
     const movieRuntimes = await Promise.all(
       uniqueMovieIds.map(async (id) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${apiKey}`, {
             next: { revalidate: 3600 },
           });
           if (res.ok) {
             const data = await res.json();
             return data.runtime || 120;
           }
-        } catch {}
+        } catch { /* ignore */ }
         return 120;
       })
     );
@@ -244,7 +245,7 @@ export default async function UserProfilePage({ params }: Props) {
     const tvRuntimes = await Promise.all(
       uniqueTvIds.map(async (id) => {
         try {
-          const res = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}`, {
+          const res = await fetch(`${TMDB_BASE_URL}/tv/${id}?api_key=${apiKey}`, {
             next: { revalidate: 3600 },
           });
           if (res.ok) {
@@ -252,7 +253,7 @@ export default async function UserProfilePage({ params }: Props) {
             const runtime = data.episode_run_time?.[0] || 45;
             return { id, runtime };
           }
-        } catch {}
+        } catch { /* ignore */ }
         return { id, runtime: 45 };
       })
     );

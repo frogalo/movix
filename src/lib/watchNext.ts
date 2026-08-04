@@ -1,13 +1,14 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import { fetchWithCache } from '@/lib/tmdbCache';
 
 // Helper to get TMDB details
 async function getTvShowDetails(tmdbId: number, apiKey: string) {
-  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}`, 3600);
+  return fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600);
 }
 
 async function getTvSeasonDetails(tmdbId: number, seasonNum: number, apiKey: string) {
-  return fetchWithCache(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
+  return fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}`, 3600);
 }
 
 async function resolveShowMetadata(show: any, apiKey: string) {
@@ -18,7 +19,7 @@ async function resolveShowMetadata(show: any, apiKey: string) {
   if (!tmdbId) {
     try {
       const res = await fetch(
-        `https://api.themoviedb.org/3/find/${show.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
+        `${TMDB_BASE_URL}/find/${show.tvdbId}?external_source=tvdb_id&api_key=${apiKey}`
       );
       if (res.ok) {
         const data = await res.json();
@@ -304,7 +305,7 @@ export async function updateWatchNextForUser(userId: string) {
         };
       })
     )
-  ).filter(Boolean) as any[];
+  ).filter(Boolean) as Omit<import("@prisma/client").WatchNextEpisode, "id" | "userId">[];
 
   // 2. Sort episodes using the required order
   const currentDate = new Date();

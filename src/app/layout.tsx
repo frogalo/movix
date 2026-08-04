@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, Bricolage_Grotesque } from "next/font/google";
+import { Inter, Space_Grotesk, Bricolage_Grotesque, Edu_AU_VIC_WA_NT_Hand } from "next/font/google";
 import "./globals.css";
 import { TopNavBar } from "@/components/navigation/TopNavBar";
 import { SideNavBar } from "@/components/navigation/SideNavBar";
@@ -23,6 +23,12 @@ const spaceGrotesk = Space_Grotesk({
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
+});
+
+const eduVicHand = Edu_AU_VIC_WA_NT_Hand({
+  variable: "--font-edu-vic-hand",
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -80,11 +86,11 @@ export default async function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Edu+VIC+WA+NT+Hand:wght@400..700&display=swap" rel="stylesheet" />
+        {/* aislop-ignore-next-line next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${bricolageGrotesque.variable} antialiased min-h-screen flex flex-col md:flex-row overflow-x-hidden`}
+        className={`${inter.variable} ${spaceGrotesk.variable} ${bricolageGrotesque.variable} ${eduVicHand.variable} antialiased min-h-screen flex flex-col md:flex-row overflow-x-hidden`}
       >
         <AuthSessionProvider session={session}>
           <SearchOverlay />

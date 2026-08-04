@@ -1,3 +1,4 @@
+import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
       if (!finalTvdbId && finalTmdbId && apiKey) {
         try {
           const extRes = await fetch(
-            `https://api.themoviedb.org/3/tv/${finalTmdbId}/external_ids?api_key=${apiKey}`
+            `${TMDB_BASE_URL}/tv/${finalTmdbId}/external_ids?api_key=${apiKey}`
           );
           if (extRes.ok) {
             const extData = await extRes.json();
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       if (!finalTmdbId && finalTvdbId && apiKey) {
         try {
           const findRes = await fetch(
-            `https://api.themoviedb.org/3/find/${finalTvdbId}?external_source=tvdb_id&api_key=${apiKey}`
+            `${TMDB_BASE_URL}/find/${finalTvdbId}?external_source=tvdb_id&api_key=${apiKey}`
           );
           if (findRes.ok) {
             const findData = await findRes.json();
