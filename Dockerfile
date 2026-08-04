@@ -22,11 +22,21 @@ RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" npx prism
 # Build Next.js in standalone mode.
 RUN NEXT_TELEMETRY_DISABLED=1 \
     DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy" \
+    TWITCH_CLIENT_ID="dummy_client_id" \
+    TWITCH_CLIENT_SECRET="dummy_client_secret" \
+    TMDB_API_KEY="dummy_tmdb_key" \
+    RESEND_API_KEY="dummy_resend_key" \
+    SMTP_HOST="localhost" \
+    SMTP_PORT="1025" \
+    SMTP_USER="user" \
+    SMTP_PASSWORD="pass" \
+    EMAIL_FROM="noreply@movix.local" \
+    AUTH_URL="http://localhost:3014" \
     AUTH_SECRET="build_time_secret_123456789" \
     npm run build
 
 # Remove development dependencies to keep the production image size small
-RUN npm prune --omit=dev
+# npm prune moved to runner stage (kept for dev builds)
 
 # ──────────────────────────────────────────────
 # Stage 3: Production runtime
