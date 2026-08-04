@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { updateWatchNextForUser } from '@/lib/watchNext';
 
 export async function POST(request: Request) {
   try {
@@ -170,6 +171,11 @@ export async function POST(request: Request) {
     if (globalForWatchNext.watchNextCache) {
       globalForWatchNext.watchNextCache.delete(userId);
     }
+
+    // Rebuild Watch Next episodes table for this user in background
+    updateWatchNextForUser(userId).catch((err) => {
+      console.error('[IMPORT_TVTIME_WATCH_NEXT_UPDATE_ERROR]', err);
+    });
 
     return NextResponse.json({
       success: true,

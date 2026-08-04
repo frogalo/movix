@@ -27,6 +27,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   following               Follow[]                 @relation("UserFollows")
   followers               Follow[]                 @relation("UserFollowedBy")
+  watchNextEpisodes       WatchNextEpisode[]
 
   @@map("users")
 }
@@ -230,4 +231,41 @@ model MediaGameLink {
 
   @@unique([gameId, mediaType, mediaId])
   @@map("media_game_links")
+}
+
+model WatchNextEpisode {
+  id                         String   @id @default(cuid())
+  userId                     String   @map("user_id")
+  showId                     String   @map("show_id")
+  showTitle                  String   @map("show_title")
+  tmdbId                     Int      @map("tmdb_id")
+  seasonNumber               Int      @map("season_number")
+  episodeNumber              Int      @map("episode_number")
+  name                       String?
+  overview                   String?  @db.Text
+  stillPath                  String?  @map("still_path")
+  airDate                    String?  @map("air_date")
+  remainingCount             Int      @default(0) @map("remaining_count")
+  lastWatchedTime            DateTime @map("last_watched_time")
+  isNew                      Boolean  @default(false) @map("is_new")
+  isFuture                   Boolean  @default(false) @map("is_future")
+  daysUntil                  Int      @default(0) @map("days_until")
+  totalEpisodesWatched       Int      @default(0) @map("total_episodes_watched")
+  totalWatchTimeMinutes      Int      @default(0) @map("total_watch_time_minutes")
+  isLastEpisodeOfLastSeason  Boolean  @default(false) @map("is_last_episode_of_last_season")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, showId])
+  @@map("watch_next_episodes")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
 }

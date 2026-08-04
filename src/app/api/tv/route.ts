@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { updateWatchNextForShow } from '@/lib/watchNext';
 
 export async function GET() {
   try {
@@ -88,6 +89,11 @@ export async function POST(req: Request) {
       globalForWatchNext.watchNextCache.delete(userId);
     }
 
+    // Rebuild Watch Next episodes table for this show in background
+    updateWatchNextForShow(userId, show.id).catch((err) => {
+      console.error('[TV_POST_WATCH_NEXT_UPDATE_ERROR]', err);
+    });
+
     return NextResponse.json(show);
   } catch (error) {
     console.error('[TV_POST]', error);
@@ -110,14 +116,30 @@ export async function DELETE(req: Request) {
       return new NextResponse('TVDB ID is required', { status: 400 });
     }
 
-    await prisma.tvShow.delete({
+    // Find the show first to get its ID
+    const show = await prisma.tvShow.findUnique({
       where: {
         userId_tvdbId: {
           userId,
-          tvdbId: Number(tvdbId),
+          tvdbId: Number(tvdbId)
         }
       }
     });
+
+    if (show) {
+      // Delete the watch next entry for this show
+      await prisma.watchNextEpisode.deleteMany({
+        where: {
+          userId,
+          showId: show.id
+        }
+      });
+
+      // Delete the show itself (cascades to tvEpisodes)
+      await prisma.tvShow.delete({
+        where: { id: show.id }
+      });
+    }
 
     // Invalidate Watch Next cache for this user
     const globalForWatchNext = globalThis as unknown as {
