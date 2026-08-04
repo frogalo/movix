@@ -39,7 +39,7 @@ export function UserAvatar({
   textClassName = "text-xs",
   className = "",
 }: UserAvatarProps) {
-  const [imageError, setImageError] = useState(false);
+  const [imageError, _setImageError] = useState(false);
   const initials = getInitials(name, email);
 
   if (image && !imageError) {

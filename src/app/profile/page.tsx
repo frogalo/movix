@@ -4,7 +4,6 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
-import { ImageWithLoader } from "@/components/common/ImageWithLoader";
 import { ProfileActions } from "@/components/profile/ProfileActions";
 import { UserAvatar } from "@/components/common/UserAvatar";
 

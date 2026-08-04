@@ -10,7 +10,6 @@ import {
   FeedGroupedItem,
   FeedRatingItem,
   FeedEpisodeGroupItem,
-  DayGroup,
 } from "@/components/social/SocialFeedClient";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w300";
@@ -158,7 +157,6 @@ export default async function SocialPage() {
   const currentUserId = session.user.id;
   const apiKey = process.env.TMDB_API_KEY;
 
-  // Get list of followed user IDs
   const follows = await prisma.follow.findMany({
     where: { followerId: currentUserId },
     select: { followingId: true },

@@ -181,7 +181,6 @@ export async function registerAction(
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function sendVerificationEmail(userId: string, email: string, name: string) {
-  // Delete any existing tokens for this user
   await prisma.emailVerificationToken.deleteMany({ where: { userId } });
 
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 h
@@ -242,7 +241,6 @@ export async function forgotPasswordAction(
 
   if (user && user.passwordHash) {
     try {
-      // Delete old tokens
       await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
       const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 h

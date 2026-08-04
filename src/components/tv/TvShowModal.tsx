@@ -92,7 +92,6 @@ export function TvShowModal({
     setMounted(true);
   }, []);
 
-  // Fetch show details & default/selected season episodes
   useEffect(() => {
     if (showId && isOpen) {
       setIsLoading(true);
@@ -209,7 +208,6 @@ export function TvShowModal({
         }),
       });
 
-      // Update state locally
       setData((prev) => {
         if (!prev) return null;
         return {
@@ -252,7 +250,6 @@ export function TvShowModal({
         }),
       });
 
-      // Update state locally
       setData((prev) => {
         if (!prev) return null;
         return {
@@ -293,7 +290,6 @@ export function TvShowModal({
         }),
       });
 
-      // Update state locally
       setData((prev) => {
         if (!prev) return null;
         return {

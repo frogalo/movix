@@ -59,7 +59,6 @@ export function GameModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  // Fetch Game Details & User State & Matched Media
   useEffect(() => {
     if (!gameId || !isOpen) {
       setGame(null);
@@ -71,7 +70,6 @@ export function GameModal({
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch details from local API which fetches from IGDB
         const detailsRes = await fetch(`/api/search/details?gameId=${gameId}`);
         if (detailsRes.ok) {
           const detailsData = await detailsRes.json();
@@ -96,7 +94,6 @@ export function GameModal({
           }
         }
 
-        // Fetch adaptation links
         const linksRes = await fetch(`/api/games/match?gameId=${gameId}`);
         if (linksRes.ok) {
           const linksData = await linksRes.json();

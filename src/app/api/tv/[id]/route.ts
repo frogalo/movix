@@ -77,7 +77,6 @@ export async function GET(
           tmdbId = tvResult.id;
           console.log(`[TV_DETAILS] Resolved TVDB ID ${tvdbId} to TMDB ID ${tmdbId}`);
           
-          // Update the database record with tmdbId to cache it
           if (dbShow) {
             dbShow = await prisma.tvShow.update({
               where: { id: dbShow.id },
@@ -176,7 +175,6 @@ async function buildResponse(
   tmdbId: number,
   apiKey: string
 ) {
-  // Extract cast
   const cast = credits.cast?.slice(0, 5).map((c: any) => ({
     id: c.id,
     name: c.name,
@@ -184,7 +182,6 @@ async function buildResponse(
     profile_path: c.profile_path
   })) || [];
 
-  // Fetch season episodes
   let episodes: any[] = [];
   const seasonData = await fetchWithCache(
     `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}`,

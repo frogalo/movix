@@ -315,12 +315,10 @@ export async function updateWatchNextForUser(userId: string) {
 
   // 4. Update the database table in a transaction
   await prisma.$transaction(async (tx) => {
-    // Delete existing entries for this user
     await tx.watchNextEpisode.deleteMany({
       where: { userId }
     });
 
-    // Create the new ones
     if (top20Episodes.length > 0) {
       await tx.watchNextEpisode.createMany({
         data: top20Episodes.map((ep) => ({
@@ -392,7 +390,6 @@ export async function triggerDailySyncIfNeeded() {
         create: { key, value: now.toISOString() }
       });
 
-      // Run sync in the background
       dailySyncWatchNext().catch(err => {
         console.error('[DAILY_SYNC_BACKGROUND_ERROR]', err);
       });

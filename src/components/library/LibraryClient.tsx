@@ -42,16 +42,16 @@ export function LibraryClient({
   const [localWatchNext, setLocalWatchNext] = useState<any[]>([]);
   const [ratedMovies, setRatedMovies] = useState<any[]>([]);
   const [localShows, setLocalShows] = useState<any[]>([]);
-  const [localGames, setLocalGames] = useState<any[]>([]);
+  const [localGames, _setLocalGames] = useState<any[]>([]);
 
   const [isWatchNextLoading, setIsWatchNextLoading] = useState(true);
   const [isWatchlistMoviesLoading, setIsWatchlistMoviesLoading] = useState(true);
   const [isRatingsLoading, setIsRatingsLoading] = useState(true);
   const [isShowsLoading, setIsShowsLoading] = useState(true);
-  const [isGamesLoading, setIsGamesLoading] = useState(false);
+  const [_isGamesLoading, _setIsGamesLoading] = useState(false);
 
-  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
-  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
+  const [_selectedGameId, _setSelectedGameId] = useState<number | null>(null);
+  const [_isGameModalOpen, _setIsGameModalOpen] = useState(false);
 
   const [ratingsPagination, setRatingsPagination] = useState<{
     currentPage: number;
@@ -298,7 +298,6 @@ export function LibraryClient({
     }
   }, [shouldRestoreScroll, isWatchNextLoading, isRatingsLoading, isShowsLoading]);
 
-  // Load more tracked shows for infinite scroll
   const loadMoreShows = async () => {
     if (isLoadingMoreShows || !hasMoreShows || !showsPagination) return;
     setIsLoadingMoreShows(true);

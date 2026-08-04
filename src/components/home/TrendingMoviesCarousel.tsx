@@ -43,10 +43,10 @@ export function TrendingMoviesCarousel({
   onLoadMore,
   showMovies,
   showTv,
-  showGames,
+  showGames: _showGames,
   onToggleMovies,
   onToggleTv,
-  onToggleGames,
+  onToggleGames: _onToggleGames,
 }: TrendingMoviesCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);

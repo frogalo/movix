@@ -67,7 +67,7 @@ export default function SocialSearchPage() {
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search by name..."
               className="w-full rounded-2xl bg-white/5 border border-white/10 pl-12 pr-4 py-4 text-white placeholder-zinc-500 outline-none focus:border-yellow-400/40 focus:bg-white/8 transition text-sm"
-              autoFocus
+              
             />
             {loading && (
               <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-white/20 border-t-yellow-400 rounded-full animate-spin" />

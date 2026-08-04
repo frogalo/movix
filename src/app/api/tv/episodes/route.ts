@@ -136,10 +136,11 @@ export async function POST(req: Request) {
         data: { updatedAt: new Date() },
       });
 
-      // Update Watch Next episodes list in the background
-      updateWatchNextForShow(userId, show.id).catch((err) => {
+      try {
+        await updateWatchNextForShow(userId, show.id);
+      } catch (err) {
         console.error('[EPISODE_POST_SEASON_WATCH_NEXT_UPDATE_ERROR]', err);
-      });
+      }
 
       return NextResponse.json({ success: true, count: episodeCount });
     }
@@ -192,10 +193,11 @@ export async function POST(req: Request) {
         data: { updatedAt: new Date() },
       });
 
-      // Update Watch Next episodes list in the background
-      updateWatchNextForShow(userId, show.id).catch((err) => {
+      try {
+        await updateWatchNextForShow(userId, show.id);
+      } catch (err) {
         console.error('[EPISODE_POST_SERIES_WATCH_NEXT_UPDATE_ERROR]', err);
-      });
+      }
 
       return NextResponse.json({ success: true, count: totalCount });
     }
@@ -249,10 +251,11 @@ export async function POST(req: Request) {
       globalForWatchNext.watchNextCache.delete(userId);
     }
 
-    // Update Watch Next episodes list in the background
-    updateWatchNextForShow(userId, show.id).catch((err) => {
+    try {
+      await updateWatchNextForShow(userId, show.id);
+    } catch (err) {
       console.error('[EPISODE_POST_WATCH_NEXT_UPDATE_ERROR]', err);
-    });
+    }
 
     return NextResponse.json(ep);
   } catch (error) {

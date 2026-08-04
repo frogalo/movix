@@ -183,7 +183,6 @@ export default async function UserProfilePage({ params }: Props) {
     }
   }
 
-  // Fetch movie info for latest ratings
   const movieInfoObj: Record<number, { posterPath: string | null; title: string }> = {};
   if (apiKey && ratingsData.length > 0) {
     const uniqueIds = [...new Set(ratingsData.slice(0, 12).map((r) => r.movieId))];

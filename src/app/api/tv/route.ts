@@ -89,10 +89,12 @@ export async function POST(req: Request) {
       globalForWatchNext.watchNextCache.delete(userId);
     }
 
-    // Rebuild Watch Next episodes table for this show in background
-    updateWatchNextForShow(userId, show.id).catch((err) => {
+    // Rebuild Watch Next episodes table for this show
+    try {
+      await updateWatchNextForShow(userId, show.id);
+    } catch (err) {
       console.error('[TV_POST_WATCH_NEXT_UPDATE_ERROR]', err);
-    });
+    }
 
     return NextResponse.json(show);
   } catch (error) {
@@ -127,7 +129,6 @@ export async function DELETE(req: Request) {
     });
 
     if (show) {
-      // Delete the watch next entry for this show
       await prisma.watchNextEpisode.deleteMany({
         where: {
           userId,

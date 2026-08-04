@@ -44,7 +44,6 @@ export function ProfileTvShowsSection({ initialTvShows }: ProfileTvShowsSectionP
     let isMounted = true;
 
     async function resolvePosters() {
-      // Process sequentially with a small delay
       for (const show of showsToResolve) {
         if (!isMounted) break;
         try {

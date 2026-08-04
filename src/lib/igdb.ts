@@ -142,7 +142,6 @@ export async function getIgdbGameDetails(gameId: number): Promise<any | null> {
 }
 
 export async function getPopularGames(limit: number = 8): Promise<any[]> {
-  // Fetch games with cover artwork sorted by rating_count desc
   const body = `fields name, cover.image_id, first_release_date, summary, platforms.name, total_rating; where first_release_date != null & cover != null; sort rating_count desc; limit ${limit};`;
   const results = await queryIgdb("games", body);
 

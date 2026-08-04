@@ -88,10 +88,5 @@ export async function sendEmail({
   }
 
   // 3. Dev Fallback
-  console.log("\n📧 [Movix Email — DEV MODE]\n");
-  console.log(`  To:      ${to}`);
-  console.log(`  Subject: ${subject}`);
   const match = html.match(/href="([^"]+)"/);
-  if (match) console.log(`  Link:    ${match[1]}`);
-  console.log("");
 }

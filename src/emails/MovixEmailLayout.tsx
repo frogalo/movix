@@ -4,11 +4,7 @@ import {
   Preview,
   Body,
   Container,
-  Section,
   Text,
-  Button,
-  Hr,
-  Img,
 } from "@react-email/components";
 
 interface MovixEmailLayoutProps {

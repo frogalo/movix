@@ -19,7 +19,6 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     const credits = await creditsRes.json();
     const providers = await providersRes.json();
 
-    // extract top 5 cast
     const cast = credits.cast?.slice(0, 5).map((c: any) => ({
       id: c.id,
       name: c.name,
@@ -27,7 +26,6 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       profile_path: c.profile_path
     })) || [];
     
-    // extract US providers
     const usProviders = providers.results?.US?.flatrate || providers.results?.US?.rent || providers.results?.US?.buy || [];
 
     return NextResponse.json({

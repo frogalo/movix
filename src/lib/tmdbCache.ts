@@ -10,7 +10,6 @@ export async function fetchWithCache(url: string, revalidateSeconds: number = 36
   const now = Date.now();
   const cached = cache.get(url);
 
-  // Return non-expired cached data immediately
   if (cached && cached.expiresAt > now) {
     return cached.data;
   }

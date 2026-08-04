@@ -22,6 +22,8 @@ interface TopRatedMoviesCarouselProps {
   onToggleGenre: (genre: string) => void;
   onToggleDecade: (decade: string) => void;
   onResetFilters: () => void;
+  hideFewVotes: boolean;
+  onToggleHideFewVotes: () => void;
 }
 
 const GENRE_MAP: { [key: string]: number[] } = {
@@ -39,7 +41,7 @@ export function TopRatedMoviesCarousel({
   onMovieSelect,
   isGrid = false,
   userLibrary,
-  onLoadMore,
+  onLoadMore: _onLoadMore,
   showMovies,
   showTv,
   onToggleMovies,
@@ -50,6 +52,8 @@ export function TopRatedMoviesCarousel({
   onToggleGenre,
   onToggleDecade,
   onResetFilters,
+  hideFewVotes,
+  onToggleHideFewVotes,
 }: TopRatedMoviesCarouselProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -287,6 +291,18 @@ export function TopRatedMoviesCarousel({
               S
             </button>
           </div>
+
+          <button
+            onClick={onToggleHideFewVotes}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase transition-all duration-200 shadow-lg border flex items-center gap-1.5 shrink-0 touch-manipulation cursor-pointer ${
+              hideFewVotes
+                ? "bg-yellow-400 text-[#241a00] border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.3)]"
+                : "bg-zinc-900/80 border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+            }`}
+          >
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            Hide Few Votes
+          </button>
         </div>
       </div>
 

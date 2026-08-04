@@ -39,7 +39,6 @@ export async function GET() {
 
     const currentUserId = session.user.id;
 
-    // Get list of followed user IDs
     const follows = await prisma.follow.findMany({
       where: { followerId: currentUserId },
       select: { followingId: true },
@@ -51,7 +50,6 @@ export async function GET() {
       return NextResponse.json({ feed: [], notFollowingAnyone: true });
     }
 
-    // Fetch recent movie ratings from followed public users
     const recentRatings = await prisma.rating.findMany({
       where: {
         user: { isPrivate: false },
@@ -74,7 +72,6 @@ export async function GET() {
       take: 30,
     });
 
-    // Fetch recent TV episode watches from followed public users
     const recentEpisodes = await prisma.tvEpisode.findMany({
       where: {
         isWatched: true,

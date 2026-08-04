@@ -27,7 +27,6 @@ export default function Discovery() {
     if (currentIndex < movies.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Loop back or fetch more
       setCurrentIndex(0);
     }
   };

@@ -48,7 +48,6 @@ export async function GET(
       (v) => v.site === 'YouTube' && v.type === 'Teaser'
     );
 
-    // Return up to 5 trailers + teasers as fallback
     const videos = [...youtubeTrailers, ...teasers].slice(0, 5).map((v) => ({
       id: v.id,
       key: v.key,

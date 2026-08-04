@@ -26,7 +26,6 @@ export async function GET(request: Request) {
         return [];
       });
 
-    // Fetch IGDB Game results
     const igdbPromise = searchIgdbGames(query)
       .catch((err) => {
         console.error('[SEARCH_IGDB_ERROR]', err);
@@ -49,4 +48,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

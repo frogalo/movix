@@ -27,6 +27,7 @@ function TopRatedContent() {
   const [showTv, setShowTv] = useState(true);
   const [activeGenres, setActiveGenres] = useState<string[]>(["All Genres"]);
   const [activeDecades, setActiveDecades] = useState<string[]>(["All Decades"]);
+  const [hideFewVotes, setHideFewVotes] = useState(false);
 
   const mainRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
@@ -35,8 +36,10 @@ function TopRatedContent() {
   useEffect(() => {
     const savedM = localStorage.getItem('filter_show_movies');
     const savedTv = localStorage.getItem('filter_show_tv');
+    const savedHideFew = localStorage.getItem('filter_hide_few_votes');
     if (savedM !== null) setShowMovies(savedM === 'true');
     if (savedTv !== null) setShowTv(savedTv === 'true');
+    if (savedHideFew !== null) setHideFewVotes(savedHideFew === 'true');
   }, []);
 
   const toggleMovies = () => {
@@ -57,9 +60,23 @@ function TopRatedContent() {
     });
   };
 
+  const toggleHideFewVotes = () => {
+    setHideFewVotes(prev => {
+      const newVal = !prev;
+      localStorage.setItem('filter_hide_few_votes', String(newVal));
+      return newVal;
+    });
+  };
+
   const filteredMovies = movies.filter(movie => {
     const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
-    return isTv ? showTv : showMovies;
+    const matchesMedia = isTv ? showTv : showMovies;
+    if (!matchesMedia) return false;
+    if (hideFewVotes) {
+      const isInflated = movie.vote_average >= 8.0 && movie.vote_count > 0 && movie.vote_count < 1000;
+      if (isInflated) return false;
+    }
+    return true;
   });
 
   useEffect(() => {
@@ -211,6 +228,8 @@ function TopRatedContent() {
   const resetFilters = () => {
     setActiveGenres(["All Genres"]);
     setActiveDecades(["All Decades"]);
+    setHideFewVotes(false);
+    localStorage.setItem('filter_hide_few_votes', 'false');
   };
 
   return (
@@ -235,6 +254,8 @@ function TopRatedContent() {
         onToggleGenre={toggleGenre}
         onToggleDecade={toggleDecade}
         onResetFilters={resetFilters}
+        hideFewVotes={hideFewVotes}
+        onToggleHideFewVotes={toggleHideFewVotes}
       />
       {isLoadingMore && (
         <div className="flex justify-center pb-8">
