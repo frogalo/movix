@@ -2,15 +2,17 @@
 # Stage 1: Install dependencies
 # ──────────────────────────────────────────────
 FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # ──────────────────────────────────────────────
 # Stage 2: Build the application
 # ──────────────────────────────────────────────
 FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -33,6 +35,7 @@ RUN NEXT_TELEMETRY_DISABLED=1 \
     EMAIL_FROM="noreply@movix.local" \
     AUTH_URL="http://localhost:3014" \
     AUTH_SECRET="build_time_secret_123456789" \
+    NODE_OPTIONS="--max-old-space-size=2048" \
     npm run build
 
 # Remove development dependencies to keep the production image size small
