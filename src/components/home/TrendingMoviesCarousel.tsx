@@ -162,12 +162,13 @@ export function TrendingMoviesCarousel({
                 initial={isMobile ? undefined : { opacity: 0, scale: 0.8 }}
                 animate={isMobile ? undefined : { opacity: 1, scale: 1 }}
                 exit={isMobile ? undefined : { opacity: 0, scale: 0.8 }}
+                whileHover={isMobile ? undefined : { scale: 1.05, transition: { duration: 0.2 } }}
                 transition={isMobile ? { duration: 0 } : { duration: 0.4, type: "spring", bounce: 0.2 }}
                 key={movie.id}
                 onClick={() => onMovieSelect(movie)}
-                className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:shadow-[0_0_20px_rgba(87,27,193,0.4)] touch-manipulation ${isGrid ? 'w-full' : 'flex-none w-[calc(33vw-20px)] md:w-48'}`}
+                className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:shadow-[0_0_20px_rgba(87,27,193,0.4)] touch-manipulation z-10 hover:z-30 transition-shadow duration-300 ${isGrid ? 'w-full' : 'flex-none w-[calc(33vw-20px)] md:w-48'}`}
               >
-                <motion.div whileHover={isMobile ? undefined : { scale: 1.05 }} className="w-full h-full transition-transform duration-300">
+                <div className="w-full h-full">
                   {movie.poster_path ? (
                     <ImageWithLoader
                       alt={title}
@@ -199,8 +200,8 @@ export function TrendingMoviesCarousel({
                     )}
                     {userRating && (
                       <div className="bg-black/80 backdrop-blur-sm rounded-full px-2 py-1 flex items-center justify-center border border-white/20 shadow-lg gap-0.5">
-                        <span className="material-symbols-outlined text-[12px] text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                        <span className="text-[12px] font-bold text-white">{userRating}</span>
+                        <span className="material-symbols-outlined text-[12px] text-yellow-400 transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <span className="text-[12px] font-bold text-white transition-transform duration-500 ease-out group-hover:scale-105">{userRating}</span>
                       </div>
                     )}
                   </div>
@@ -223,19 +224,19 @@ export function TrendingMoviesCarousel({
                     </div>
                   )}
                 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 md:p-4">
-                  <div className="flex items-center gap-1 text-primary-container mb-1">
-                    <span className="material-symbols-outlined text-[12px] md:text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="font-label-sm text-[10px] md:text-label-sm">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 md:p-4">
+                    <div className="flex items-center gap-1 text-primary-container mb-1">
+                      <span className="material-symbols-outlined text-[12px] md:text-[14px] transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      <span className="font-label-sm text-[10px] md:text-label-sm transition-transform duration-500 ease-out group-hover:scale-105 inline-block">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+                    </div>
+                    <h3 className="font-headline-md text-[14px] md:text-[16px] text-white truncate">{title}</h3>
+                    <p className="font-label-sm text-[10px] md:text-label-sm text-zinc-400 mt-1 truncate">
+                      {releaseDate ? new Date(releaseDate).getFullYear() : 'N/A'}
+                    </p>
                   </div>
-                  <h3 className="font-headline-md text-[14px] md:text-[16px] text-white truncate">{title}</h3>
-                  <p className="font-label-sm text-[10px] md:text-label-sm text-zinc-400 mt-1 truncate">
-                    {releaseDate ? new Date(releaseDate).getFullYear() : 'N/A'}
-                  </p>
                 </div>
               </motion.div>
-            </motion.div>
-          )})}
+            )})}
         </AnimatePresence>
       </motion.div>
     </motion.section>

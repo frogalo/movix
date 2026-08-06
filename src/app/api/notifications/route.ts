@@ -95,7 +95,7 @@ export async function GET() {
                     mediaType: "tv" as const,
                     extraInfo: `S${sStr} · E${eStr}`,
                   },
-                  link: `/tv/${show.tmdbId}`,
+                  link: `/library?tvId=${show.tmdbId}&season=${lastEp.season_number}&episode=${lastEp.episode_number}`,
                   timestamp: airDate.toISOString(),
                 };
               }
@@ -142,7 +142,7 @@ export async function GET() {
                     posterPath: data.poster_path || null,
                     mediaType: "movie" as const,
                   },
-                  link: `/movie/${data.id}`,
+                  link: `/library?movieId=${data.id}`,
                   timestamp: relDate.toISOString(),
                 };
               }

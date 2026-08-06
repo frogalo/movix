@@ -27,11 +27,7 @@ export async function GET(request: Request) {
         return [];
       });
 
-    const igdbPromise = searchIgdbGames(query)
-      .catch((err) => {
-        console.error('[SEARCH_IGDB_ERROR]', err);
-        return [];
-      });
+    const igdbPromise = Promise.resolve<any[]>([]);
 
     const [tmdbResults, igdbResults] = await Promise.all([tmdbPromise, igdbPromise]);
 

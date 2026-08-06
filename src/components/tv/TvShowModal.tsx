@@ -15,6 +15,8 @@ interface TvShowModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLibraryUpdate?: () => void;
+  initialSeason?: number | null;
+  highlightEpisode?: number | null;
 }
 
 type Genre = {
@@ -76,6 +78,8 @@ export function TvShowModal({
   isOpen,
   onClose,
   onLibraryUpdate,
+  initialSeason = null,
+  highlightEpisode = null,
 }: TvShowModalProps) {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
@@ -87,10 +91,38 @@ export function TvShowModal({
   const [scrollTop, setScrollTop] = useState(0);
   const [showTrailer, setShowTrailer] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [hasScrolledToEpisode, setHasScrolledToEpisode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && initialSeason !== null && initialSeason !== undefined) {
+      setSelectedSeason(initialSeason);
+    } else if (!isOpen) {
+      setSelectedSeason('auto');
+    }
+  }, [isOpen, initialSeason]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setHasScrolledToEpisode(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && !isLoading && data && highlightEpisode && !hasScrolledToEpisode) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`episode-card-${highlightEpisode}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          setHasScrolledToEpisode(true);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isLoading, data, highlightEpisode, hasScrolledToEpisode]);
 
   useEffect(() => {
     if (showId && isOpen) {
@@ -470,7 +502,7 @@ export function TvShowModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 24 }}
               transition={{ duration: 0.28, ease: "easeOut" }}
-              className="glass-panel relative z-10 flex h-[100dvh] w-full max-w-6xl flex-col overflow-y-auto md:overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+              className="glass-panel relative z-10 flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none md:h-auto md:max-h-[calc(100vh-4rem)] md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)]"
             >
               <button
                 onClick={onClose}
@@ -480,7 +512,8 @@ export function TvShowModal({
                 <span className="material-symbols-outlined">close</span>
               </button>
 
-              <TvShowModalHero
+              <div className="flex-1 overflow-y-auto md:overflow-hidden h-full flex flex-col md:flex-row">
+                <TvShowModalHero
                 name={details.name}
                 backdropPath={details.backdrop_path}
                 posterPath={details.poster_path}
@@ -489,7 +522,7 @@ export function TvShowModal({
 
               {/* Content & Episodes column */}
               <div 
-                className="flex flex-1 flex-col overflow-visible bg-background p-4 md:p-8"
+                className="flex flex-1 flex-col overflow-visible md:overflow-y-auto bg-background p-4 md:p-8"
                 onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
               >
                 {/* Top Section wrapper for mobile auto-hide */}
@@ -561,6 +594,7 @@ export function TvShowModal({
                         ep={ep}
                         isLoggedIn={isLoggedIn}
                         isActionInProgress={isActionInProgress !== null}
+                        isHighlighted={ep.episode_number === Number(highlightEpisode)}
                         handleEpisodeWatchToggle={handleEpisodeWatchToggle}
                         handleEpisodeVote={handleEpisodeVote}
                         handleEpisodeRating={handleEpisodeRating}
@@ -569,7 +603,8 @@ export function TvShowModal({
                   )}
                 </div>
               </div>
-            </motion.div>
+            </div>
+          </motion.div>
           </div>
         )}
       </AnimatePresence>

@@ -67,14 +67,14 @@ export function TrackedShowsSection({
                 <div
                   key={show.id}
                   onClick={() => setSelectedTvShowId(show.tmdbId)}
-                  className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl bg-zinc-900/40 border border-white/5 hover:border-purple-500/30 transition duration-300 touch-manipulation"
+                  className="group flex cursor-pointer flex-col rounded-2xl bg-zinc-900/40 border border-white/5 hover:border-purple-500/30 transition duration-300 touch-manipulation"
                 >
-                  <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950 border-b border-white/5 shadow-xl">
+                  <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border-b border-white/5 shadow-xl transition-all duration-300 group-hover:scale-105 z-10 group-hover:z-30">
                     {posterUrl ? (
                       <ImageWithLoader
                         src={posterUrl}
                         alt={show.title}
-                        className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-zinc-700">
@@ -86,7 +86,7 @@ export function TrackedShowsSection({
                     {(show.rating || show.vote) && (
                       <div className="absolute right-2 top-2 rounded-lg bg-black/85 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-bold text-white border border-white/10 flex items-center gap-1 shadow-lg z-10">
                         {show.vote && (
-                          <span>
+                          <span className="transition-transform duration-500 ease-out group-hover:scale-125 inline-block">
                             {show.vote === "love" && "😍"}
                             {show.vote === "good" && "😄"}
                             {show.vote === "wow" && "😮"}
@@ -96,8 +96,8 @@ export function TrackedShowsSection({
                           </span>
                         )}
                         {show.rating && (
-                          <span className="flex items-center gap-0.5 text-yellow-400 font-extrabold">
-                            <span className="material-symbols-outlined text-[10px] leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                          <span className="flex items-center gap-0.5 text-yellow-400 font-extrabold transition-transform duration-500 ease-out group-hover:scale-105">
+                            <span className="material-symbols-outlined text-[10px] leading-none transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                             {show.rating}
                           </span>
                         )}

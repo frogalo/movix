@@ -26,15 +26,28 @@ export async function GET(req: Request) {
     }
 
     const userId = session.user.id;
-    const totalRatings = await prisma.rating.count({ where: { userId } });
+    const RATINGS_PAGE_SIZE = 10;
     
+    const totalRatings = await prisma.rating.count({
+      where: { 
+        userId,
+        rating: { not: null }
+      }
+    });
+
     const dbRatings = await prisma.rating.findMany({
-      where: { userId },
-      orderBy: { updatedAt: "desc" },
+      where: { 
+        userId,
+        rating: { not: null }
+      },
+      orderBy: [
+        { rating: "desc" },
+        { updatedAt: "desc" }
+      ],
       skip: (page - 1) * RATINGS_PAGE_SIZE,
       take: RATINGS_PAGE_SIZE,
     });
-
+ 
     const ratedMovies = (
       await Promise.all(
         dbRatings.map(async (r) => {
@@ -51,7 +64,7 @@ export async function GET(req: Request) {
         })
       )
     ).filter(Boolean);
-
+ 
     return NextResponse.json({
       ratedMovies,
       totalPages: Math.ceil(totalRatings / RATINGS_PAGE_SIZE),

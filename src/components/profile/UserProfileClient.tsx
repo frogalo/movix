@@ -171,13 +171,13 @@ export function UserProfileClient({
                 <div
                   key={idx}
                   onClick={() => handleMovieClick(r.movieId)}
-                  className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-yellow-400/50 hover:shadow-[0_0_20px_rgba(255,204,0,0.15)] cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+                  className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-yellow-400/50 hover:shadow-[0_0_20px_rgba(255,204,0,0.15)] cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 z-10 hover:z-30"
                 >
                   {posterUrl ? (
                     <ImageWithLoader
                       src={posterUrl}
                       alt={info?.title ?? "Movie"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover transition-transform duration-500"
                       wrapperClassName="w-full h-full"
                       loaderSize={12}
                     />
@@ -193,12 +193,14 @@ export function UserProfileClient({
                     {r.rating && (
                       <span className="flex items-center gap-1 text-yellow-400 font-extrabold text-xs">
                         <span
-                          className="material-symbols-outlined text-[12px]"
+                          className="material-symbols-outlined text-[12px] transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]"
                           style={{ fontVariationSettings: "'FILL' 1" }}
                         >
                           star
                         </span>
-                        {r.rating}/10
+                        <span className="transition-transform duration-500 ease-out group-hover:scale-105 inline-block">
+                          {r.rating}/10
+                        </span>
                       </span>
                     )}
                     {info?.title && (
@@ -342,13 +344,13 @@ export function UserProfileClient({
                 <div
                   key={show.id || idx}
                   onClick={() => targetShowId && handleShowClick(targetShowId)}
-                  className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+                  className="group relative rounded-xl overflow-hidden aspect-[2/3] bg-zinc-900 border border-white/5 hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 z-10 hover:z-30"
                 >
                   {posterUrl ? (
                     <ImageWithLoader
                       src={posterUrl}
                       alt={show.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover transition-transform duration-500"
                       wrapperClassName="w-full h-full"
                       loaderSize={12}
                     />

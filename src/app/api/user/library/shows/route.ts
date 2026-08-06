@@ -67,7 +67,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get('page')) || 1);
-    const limit = 6;
+    const limit = 10;
     const apiKey = process.env.TMDB_API_KEY || '';
 
     const shows = await prisma.tvShow.findMany({

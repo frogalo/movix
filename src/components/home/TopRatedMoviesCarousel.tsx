@@ -145,12 +145,13 @@ export function TopRatedMoviesCarousel({
     const isInflated = movie.vote_average >= 8.0 && movie.vote_count > 0 && movie.vote_count < 1000;
 
     return (
-      <div
+      <motion.div
         key={movie.id}
         onClick={() => onMovieSelect(movie)}
-        className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] touch-manipulation ${isSectionGrid ? 'w-full' : 'flex-none w-[calc(33vw-20px)] md:w-48'}`}
+        whileHover={isMobile ? undefined : { scale: 1.05, transition: { duration: 0.2 } }}
+        className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] touch-manipulation z-10 hover:z-30 transition-shadow duration-300 ${isSectionGrid ? 'w-full' : 'flex-none w-[calc(33vw-20px)] md:w-48'}`}
       >
-        <motion.div whileHover={isMobile ? undefined : { scale: 1.05 }} className="w-full h-full transition-transform duration-300">
+        <div className="w-full h-full">
           {movie.poster_path ? (
             <ImageWithLoader
               alt={title}
@@ -167,8 +168,8 @@ export function TopRatedMoviesCarousel({
           <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-20 pointer-events-none">
             {/* TMDB Average Rating Badge - shown by default */}
             <div className="bg-black/85 backdrop-blur-md rounded-lg px-2 py-1 flex items-center justify-center border border-yellow-400/30 shadow-lg gap-1">
-              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-              <span className="text-[12px] font-black text-yellow-400">
+              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]" />
+              <span className="text-[12px] font-black text-yellow-400 transition-transform duration-500 ease-out group-hover:scale-105 inline-block">
                 {movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}
               </span>
             </div>
@@ -185,8 +186,8 @@ export function TopRatedMoviesCarousel({
             )}
             {userRating && (
               <div className="bg-black/80 backdrop-blur-sm rounded-full px-2 py-1 flex items-center justify-center border border-white/20 shadow-lg gap-0.5">
-                <User className="w-3 h-3 text-white fill-white" />
-                <span className="text-[12px] font-bold text-white">{userRating}</span>
+                <User className="w-3 h-3 text-white fill-white transition-transform duration-500 ease-out group-hover:scale-125 group-hover:translate-y-[-1px]" />
+                <span className="text-[12px] font-bold text-white transition-transform duration-500 ease-out group-hover:scale-105 inline-block">{userRating}</span>
               </div>
             )}
           </div>
@@ -256,8 +257,8 @@ export function TopRatedMoviesCarousel({
               {releaseDate ? new Date(releaseDate).getFullYear() : 'N/A'}
             </p>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     );
   };
 

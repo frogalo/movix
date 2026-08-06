@@ -1,6 +1,7 @@
 "use client";
 
 import { ImageWithLoader } from "@/components/common/ImageWithLoader";
+import { VotingComponent } from "@/components/common/VotingComponent";
 
 interface WatchNextSectionProps {
   localWatchNext: any[];
@@ -8,12 +9,16 @@ interface WatchNextSectionProps {
   filteredWatchlistMovies: any[];
   watchNextLimit: number;
   setWatchNextLimit: React.Dispatch<React.SetStateAction<number>>;
+  watchlistMoviesLimit: number;
+  setWatchlistMoviesLimit: React.Dispatch<React.SetStateAction<number>>;
   isMarking: string | null;
   handleMarkWatched: (ep: any) => Promise<void>;
   setSelectedTvShowId: (id: number) => void;
   setSelectedMovie: (movie: any) => void;
   watchNextLoading?: boolean;
   watchlistMoviesLoading?: boolean;
+  isVotingMovie: number | null;
+  handleQuickVote: (movieId: number, vote: string | null, rating: number | null) => Promise<void>;
 }
 
 function getReleaseStatus(releaseDateStr?: string) {
@@ -76,12 +81,16 @@ export function WatchNextSection({
   filteredWatchlistMovies,
   watchNextLimit,
   setWatchNextLimit,
+  watchlistMoviesLimit,
+  setWatchlistMoviesLimit,
   isMarking,
   handleMarkWatched,
   setSelectedTvShowId,
   setSelectedMovie,
   watchNextLoading = false,
   watchlistMoviesLoading = false,
+  isVotingMovie,
+  handleQuickVote,
 }: WatchNextSectionProps) {
   const isEverythingEmpty = !watchNextLoading && !watchlistMoviesLoading && localWatchNext.length === 0 && filteredWatchlistMovies.length === 0;
 
@@ -109,7 +118,7 @@ export function WatchNextSection({
               <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">TV Shows (New Episodes)</h4>
               <div className="space-y-4">
                 {[1, 2].map((i) => (
-                  <div key={i} className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 h-[110px] md:h-[130px] animate-pulse bg-zinc-900/40">
+                  <div key={i} className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-purple-500/15 bg-purple-950/[0.04] h-[110px] md:h-[130px] animate-pulse">
                     <div className="w-28 md:w-44 shrink-0 bg-zinc-850" />
                     <div className="flex-1 p-3 md:p-5 flex flex-col justify-center space-y-3">
                       <div className="h-4 bg-zinc-850 rounded w-1/3" />
@@ -155,7 +164,7 @@ export function WatchNextSection({
                       ) : (
                         <div
                           onClick={() => setSelectedTvShowId(ep.tmdbId)}
-                          className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 hover:border-yellow-400/30 hover:scale-[1.01] hover:shadow-[0_12px_30px_rgba(0,0,0,0.5)] active:bg-white/5 transition-all duration-300 group touch-manipulation cursor-pointer h-[110px] md:h-[130px]"
+                          className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-purple-500/15 bg-purple-950/[0.04] hover:border-purple-500/45 hover:scale-[1.01] hover:shadow-[0_12px_30px_rgba(147,51,234,0.15)] active:bg-white/5 transition-all duration-300 group touch-manipulation cursor-pointer h-[110px] md:h-[130px]"
                         >
                           {/* Left: Image */}
                           <div className="w-28 md:w-44 shrink-0 relative bg-zinc-950 self-stretch overflow-hidden">
@@ -272,66 +281,106 @@ export function WatchNextSection({
 
           {/* Movies Watchlist Column */}
           {watchlistMoviesLoading ? (
-            <div className={`space-y-4 min-w-0 w-full ${watchNextLoading || localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
+            <div className={`space-y-4 w-full min-w-0 ${watchNextLoading || localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
               <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">Watchlist Movies</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col gap-2 rounded-2xl bg-zinc-900/40 p-2 border border-white/5 animate-pulse">
-                    <div className="aspect-[2/3] w-full bg-zinc-850 rounded-xl" />
-                    <div className="h-3 bg-zinc-850 rounded w-2/3 mx-auto mt-1" />
+                  <div key={i} className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-yellow-500/10 bg-yellow-950/[0.02] h-[110px] md:h-[130px] animate-pulse">
+                    <div className="w-20 md:w-28 shrink-0 bg-zinc-850" />
+                    <div className="flex-1 p-3 md:p-4 flex flex-col justify-center space-y-2">
+                      <div className="h-4 bg-zinc-850 rounded w-2/3" />
+                      <div className="h-3 bg-zinc-850 rounded w-1/3" />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : filteredWatchlistMovies.length > 0 ? (
-            <div className={`space-y-4 min-w-0 w-full ${watchNextLoading || localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
+            <div className={`space-y-4 w-full min-w-0 ${watchNextLoading || localWatchNext.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'}`}>
               <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 px-1">Watchlist Movies</h4>
-              <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:mx-0 md:px-0">
-                {filteredWatchlistMovies.map((m) => {
+              <div className="space-y-4 overflow-hidden py-1 px-1">
+                {filteredWatchlistMovies.slice(0, watchlistMoviesLimit).map((m) => {
                   const status = getReleaseStatus(m.release_date);
                   return (
                     <div
                       key={m.id}
                       onClick={() => setSelectedMovie(m)}
-                      className="w-28 md:w-full shrink-0 md:shrink flex flex-col gap-1 cursor-pointer group touch-manipulation"
+                      className="glass-panel flex w-full min-w-0 overflow-hidden rounded-2xl border border-yellow-500/10 bg-yellow-950/[0.02] hover:border-yellow-400/45 hover:scale-[1.01] hover:shadow-[0_12px_30px_rgba(250,204,21,0.1)] active:bg-white/5 transition-all duration-300 group touch-manipulation cursor-pointer h-[110px] md:h-[130px]"
                     >
-                      <div className="w-full aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-xl relative">
+                      {/* Left: Image */}
+                      <div className="w-20 md:w-28 shrink-0 relative bg-zinc-950 self-stretch overflow-hidden">
                         {m.poster_path ? (
                           <ImageWithLoader
                             src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
                             alt={m.title}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                            <span className="material-symbols-outlined">movie</span>
-                          </div>
-                        )}
-
-                        {status && (
-                          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent h-10 pointer-events-none" />
-                            <div className="relative flex items-center justify-center gap-1.5 py-1.5 px-2">
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                status.type === 'premiere' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
-                                status.type === 'soon' ? 'bg-[#00daf3] shadow-[0_0_8px_#00daf3]' :
-                                status.type === 'future' ? 'bg-zinc-400' :
-                                status.type === 'recent' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
-                                'bg-zinc-500'
-                              } ${status.type === 'premiere' ? 'animate-pulse' : ''}`} />
-                              <span className="text-[8px] font-extrabold tracking-widest uppercase text-white/95 drop-shadow">
-                                {status.text}
-                              </span>
-                            </div>
+                            <span className="material-symbols-outlined text-3xl">movie</span>
                           </div>
                         )}
                       </div>
-                      <h5 className="text-white text-xs font-semibold truncate px-1 group-hover:text-yellow-400" title={m.title}>
-                        {m.title}
-                      </h5>
+
+                      {/* Middle: Details */}
+                      <div className="flex-1 min-w-0 p-3 md:p-4 flex flex-col justify-center gap-0.5 overflow-hidden">
+                        <h5 className="text-white text-sm md:text-base font-bold truncate group-hover:text-yellow-400 transition-colors" title={m.title}>
+                          {m.title}
+                        </h5>
+                        <span className="text-zinc-400 text-xs font-semibold">
+                          {m.release_date ? new Date(m.release_date).getFullYear() : 'N/A'}
+                        </span>
+                        {status && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              status.type === 'premiere' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
+                              status.type === 'soon' ? 'bg-[#00daf3] shadow-[0_0_8px_#00daf3]' :
+                              status.type === 'future' ? 'bg-zinc-400' :
+                              status.type === 'recent' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
+                              'bg-zinc-500'
+                            } ${status.type === 'premiere' ? 'animate-pulse' : ''}`} />
+                            <span className="text-[9px] font-black tracking-widest uppercase text-zinc-300">
+                              {status.text}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Action Column (stretching full-height, sticking to right edge) */}
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-16 md:w-20 shrink-0 self-stretch border-l border-white/10 flex items-stretch"
+                      >
+                        <VotingComponent
+                          vote={null}
+                          rating={null}
+                          onVoteChange={(vote) => handleQuickVote(m.id, vote, null)}
+                          onRatingChange={(rating) => handleQuickVote(m.id, null, rating)}
+                          isActionInProgress={isVotingMovie === m.id}
+                          label={m.title}
+                          iconOnly={true}
+                          hasCustomColors={true}
+                          className="w-full h-full"
+                          buttonClassName="w-full h-full justify-center transition-all bg-white/10 hover:bg-white hover:text-zinc-950 active:bg-zinc-200 text-zinc-200 text-xs border-0 rounded-none cursor-pointer"
+                        />
+                      </div>
                     </div>
                   );
                 })}
+
+                {filteredWatchlistMovies.length > watchlistMoviesLimit && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setWatchlistMoviesLimit((prev) => prev + 5);
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-semibold text-xs uppercase tracking-wider transition-all"
+                    >
+                      Load More Movies
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}

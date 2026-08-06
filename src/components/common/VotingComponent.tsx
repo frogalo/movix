@@ -20,6 +20,10 @@ interface VotingComponentProps {
   onRatingChange: (rating: number | null) => void;
   isActionInProgress?: boolean;
   label?: string;
+  className?: string;
+  buttonClassName?: string;
+  iconOnly?: boolean;
+  hasCustomColors?: boolean;
 }
 
 export function VotingComponent({
@@ -29,6 +33,10 @@ export function VotingComponent({
   onRatingChange,
   isActionInProgress = false,
   label = "Item",
+  className,
+  buttonClassName,
+  iconOnly = false,
+  hasCustomColors = false,
 }: VotingComponentProps) {
   const [showDrawer, setShowDrawer] = useState(false);
   const [showDesktopPopover, setShowDesktopPopover] = useState(false);
@@ -43,9 +51,17 @@ export function VotingComponent({
   const updateCoords = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
+      const popoverWidth = 290;
+      let left = rect.left + (rect.width / 2) - (popoverWidth / 2);
+      
+      // Horizontal viewport bounds check (minimum 16px padding from borders)
+      if (typeof window !== "undefined") {
+        left = Math.max(16, Math.min(window.innerWidth - popoverWidth - 16, left));
+      }
+      
       setCoords({
         top: rect.top - 12,
-        left: rect.right - 290,
+        left,
       });
     }
   };
@@ -168,88 +184,93 @@ export function VotingComponent({
   );
 
   return (
-    <div className="relative inline-flex items-center" ref={containerRef}>
+    <div className={`relative inline-flex items-center ${className || ""}`} ref={containerRef}>
       {/* Redesigned Integrated Button Pill */}
       <button
         onClick={handleOpen}
         disabled={isActionInProgress}
-        className={`flex h-9 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-300 cursor-pointer touch-manipulation shrink-0 ${
-          vote || rating
-            ? "border-yellow-400 bg-yellow-400 text-black shadow-[0_0_10px_rgba(250,204,21,0.2)] hover:bg-yellow-500"
-            : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
+        className={`flex items-center gap-1.5 border font-semibold transition-all duration-300 cursor-pointer touch-manipulation shrink-0 ${buttonClassName || "h-9 px-3 py-1.5 text-xs rounded-xl"} ${
+          hasCustomColors
+            ? ""
+            : vote || rating
+              ? "border-yellow-400 bg-yellow-400 text-black shadow-[0_0_10px_rgba(250,204,21,0.2)] hover:bg-yellow-500"
+              : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
         }`}
       >
         <span className="flex items-center gap-1">
           {activeEmotion ? (
-            <span className="text-sm">{activeEmotion.emoji}</span>
+            <span className={iconOnly ? "text-xl md:text-2xl" : "text-sm"}>{activeEmotion.emoji}</span>
           ) : (
-            <span className="material-symbols-outlined text-[16px] leading-none" style={rating ? { fontVariationSettings: "'FILL' 1" } : {}}>
+            <span className={`material-symbols-outlined leading-none ${iconOnly ? 'text-[24px] md:text-[28px] font-black' : 'text-[16px]'}`} style={rating ? { fontVariationSettings: "'FILL' 1" } : {}}>
               star
             </span>
           )}
-          <span>
-            {rating ? `${rating}/10` : activeEmotion ? activeEmotion.label : "Rate & React"}
-          </span>
+          {!iconOnly && (
+            <span>
+              {rating ? `${rating}/10` : activeEmotion ? activeEmotion.label : "Rate & React"}
+            </span>
+          )}
         </span>
       </button>
 
-      {/* Desktop Inline Popover */}
+      {/* Desktop Inline Popover & Mobile Drawer Portals */}
       {mounted && typeof document !== "undefined" && createPortal(
-        <AnimatePresence>
-          {showDesktopPopover && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              transformTemplate={({ scale, y }) => `translateY(-100%) scale(${scale || 1}) translateY(${y || '0px'})`}
-              style={{
-                position: "fixed",
-                top: `${coords.top}px`,
-                left: `${coords.left}px`,
-              }}
-              className="portal-popover z-[999] hidden w-[290px] rounded-2xl border border-white/10 bg-zinc-950/98 p-4 shadow-2xl backdrop-blur-2xl md:block"
-            >
-              <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400 text-center border-b border-white/5 pb-2">
-                {label} Feedback
-              </div>
-              <PickerContent />
-            </motion.div>
-          )}
-        </AnimatePresence>,
+        <>
+          <AnimatePresence>
+            {showDesktopPopover && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                transformTemplate={({ scale, y }) => `translateY(-100%) scale(${scale || 1}) translateY(${y || '0px'})`}
+                style={{
+                  position: "fixed",
+                  top: `${coords.top}px`,
+                  left: `${coords.left}px`,
+                }}
+                className="portal-popover z-[999] hidden w-[290px] rounded-2xl border border-white/10 bg-zinc-950/98 p-4 shadow-2xl backdrop-blur-2xl md:block"
+              >
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400 text-center border-b border-white/5 pb-2">
+                  {label} Feedback
+                </div>
+                <PickerContent />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showDrawer && (
+              <>
+                {/* Backdrop Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowDrawer(false)}
+                  className="fixed inset-0 z-[999] md:hidden bg-black/85 backdrop-blur-md"
+                />
+                {/* Bottom Sheet Drawer */}
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                  className="fixed bottom-0 left-0 right-0 z-[1000] md:hidden rounded-t-[2.5rem] border-t border-white/10 bg-zinc-950 px-6 pb-10 pt-4 shadow-2xl"
+                >
+                  {/* Drag Handle indicator */}
+                  <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-white/15" onClick={() => setShowDrawer(false)} />
+                  <div className="mb-4 text-center font-semibold text-lg text-white">
+                    Rate & React
+                  </div>
+                  <PickerContent />
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </>,
         document.body
       )}
-
-      {/* Mobile Drawer (Bottom Sheet) */}
-      <AnimatePresence>
-        {showDrawer && (
-          <>
-            {/* Backdrop Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDrawer(false)}
-              className="fixed inset-0 z-[100] md:hidden bg-black/80 backdrop-blur-md"
-            />
-            {/* Bottom Sheet Drawer */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="fixed bottom-0 left-0 right-0 z-[101] md:hidden rounded-t-[2.5rem] border-t border-white/10 bg-zinc-950 px-6 pb-10 pt-4 shadow-2xl"
-            >
-              {/* Drag Handle indicator */}
-              <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-white/15" onClick={() => setShowDrawer(false)} />
-              <div className="mb-4 text-center font-semibold text-lg text-white">
-                Rate & React
-              </div>
-              <PickerContent />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -12,6 +12,7 @@ interface RatingsSectionProps {
   setSelectedMovie: (movie: any) => void;
   setPage: (type: "ratings" | "shows", pageNum: number) => void;
   loading?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export function RatingsSection({
@@ -20,6 +21,7 @@ export function RatingsSection({
   setSelectedMovie,
   setPage,
   loading = false,
+  isLoadingMore = false,
 }: RatingsSectionProps) {
   return (
     <div>
@@ -58,12 +60,12 @@ export function RatingsSection({
                 onClick={() => setSelectedMovie(m)}
                 className="group flex cursor-pointer flex-col gap-2 rounded-2xl bg-zinc-900/40 p-2.5 border border-white/5 hover:border-yellow-400/20 transition duration-300 touch-manipulation"
               >
-                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5 shadow-xl">
+                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5 shadow-xl transition-all duration-300 group-hover:scale-105 z-10 group-hover:z-30">
                   {m.poster_path ? (
                     <ImageWithLoader
                       src={`https://image.tmdb.org/t/p/w342${m.poster_path}`}
                       alt={m.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-600">
@@ -71,8 +73,8 @@ export function RatingsSection({
                     </div>
                   )}
                   <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 border border-white/10">
-                    <span className="material-symbols-outlined text-[12px] text-yellow-400" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="text-xs font-bold text-white">{m.userRating}/10</span>
+                    <span className="material-symbols-outlined text-[12px] text-yellow-400 transition-transform duration-500 ease-out group-hover:scale-125 group-hover:rotate-[15deg]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="text-xs font-bold text-white transition-transform duration-500 ease-out group-hover:scale-105 inline-block">{m.userRating}/10</span>
                   </div>
                 </div>
                 <h4 className="text-white text-xs font-semibold truncate px-1" title={m.title}>
@@ -82,24 +84,22 @@ export function RatingsSection({
             ))}
           </div>
 
-          {ratingsPagination && ratingsPagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-yellow-400"></div>
+            </div>
+          )}
+
+          {ratingsPagination && ratingsPagination.currentPage < ratingsPagination.totalPages && !isLoadingMore && (
+            <div className="flex justify-center pt-6">
               <button
-                disabled={ratingsPagination.currentPage === 1}
-                onClick={() => setPage("ratings", ratingsPagination.currentPage - 1)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 border border-white/10 text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-zinc-800 transition touch-manipulation"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPage("ratings", ratingsPagination.currentPage + 1);
+                }}
+                className="px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-semibold text-xs uppercase tracking-wider transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-              </button>
-              <span className="text-sm font-semibold text-zinc-400 px-2">
-                Page {ratingsPagination.currentPage} of {ratingsPagination.totalPages}
-              </span>
-              <button
-                disabled={ratingsPagination.currentPage === ratingsPagination.totalPages}
-                onClick={() => setPage("ratings", ratingsPagination.currentPage + 1)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 border border-white/10 text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-zinc-800 transition touch-manipulation"
-              >
-                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                Show More (+10 Movies)
               </button>
             </div>
           )}

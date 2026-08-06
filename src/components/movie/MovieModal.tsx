@@ -204,7 +204,7 @@ export function MovieModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 24 }}
               transition={{ duration: 0.28, ease: "easeOut" }}
-              className="glass-panel relative z-10 flex h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-y-auto md:overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] md:flex-row"
+              className="glass-panel relative z-10 flex h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col overflow-hidden rounded-none md:rounded-[2rem] border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)]"
             >
               <button
                 onClick={onClose}
@@ -231,7 +231,8 @@ export function MovieModal({
                 </button>
               )}
 
-              <div className="relative w-full shrink-0 overflow-hidden h-[300px] md:h-auto md:w-[44%]">
+              <div className="flex-1 overflow-y-auto md:overflow-hidden h-full flex flex-col md:flex-row">
+                <div className="relative w-full shrink-0 overflow-hidden h-[300px] md:h-auto md:w-[44%]">
                 {heroImage ? (
                   <ImageWithLoader
                     src={heroImage}
@@ -265,7 +266,7 @@ export function MovieModal({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-visible md:overflow-y-auto p-5 pb-24 md:p-10 md:pb-10 md:pt-10 overscroll-none">
+              <div className="flex-1 overflow-visible md:overflow-y-auto p-5 pb-24 md:p-10 md:pb-10 md:pt-10 overscroll-none">
                 <header className="hidden space-y-3 md:block">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-label-sm uppercase tracking-[0.24em] text-yellow-300">
@@ -405,9 +406,12 @@ export function MovieModal({
                         onRatingChange={handleRating}
                         isActionInProgress={isRating}
                         label="Movie"
+                        className="flex-1"
+                        buttonClassName="flex-1 justify-center py-3 md:py-4 px-4 md:px-6 text-sm rounded-xl md:rounded-2xl h-auto"
                       />
                     )}
                   </div>
+                </div>
                 </div>
               </div>
             </motion.div>

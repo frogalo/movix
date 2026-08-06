@@ -23,6 +23,7 @@ interface TvShowEpisodeCardProps {
   handleEpisodeWatchToggle: (episode: EpisodeProgress) => Promise<void>;
   handleEpisodeVote: (episode: EpisodeProgress, vote: string | null) => Promise<void>;
   handleEpisodeRating: (episode: EpisodeProgress, rating: number | null) => Promise<void>;
+  isHighlighted?: boolean;
 }
 
 export function TvShowEpisodeCard({
@@ -32,6 +33,7 @@ export function TvShowEpisodeCard({
   handleEpisodeWatchToggle,
   handleEpisodeVote,
   handleEpisodeRating,
+  isHighlighted = false,
 }: TvShowEpisodeCardProps) {
   const isEpisodeFuture = ep.air_date ? new Date(ep.air_date).getTime() > Date.now() : false;
 
@@ -66,7 +68,14 @@ export function TvShowEpisodeCard({
   };
 
   return (
-    <div className="glass-panel flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] transition hover:bg-white/[0.04] md:flex-row">
+    <div
+      id={`episode-card-${ep.episode_number}`}
+      className={`glass-panel flex flex-col overflow-hidden rounded-2xl transition-all duration-300 md:flex-row ${
+        isHighlighted
+          ? "border-yellow-400 bg-yellow-500/[0.06] shadow-[0_0_25px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400/30"
+          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+      }`}
+    >
       {/* Episode Thumbnail */}
       <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-zinc-900 md:w-36 md:h-auto md:aspect-video">
         {ep.still_path ? (

@@ -29,7 +29,7 @@ function HomeContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMovies, setShowMovies] = useState(true);
   const [showTv, setShowTv] = useState(true);
-  const [showGames, setShowGames] = useState(true);
+  const [showGames, setShowGames] = useState(false);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [isGameModalOpen, setIsGameModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -39,10 +39,9 @@ function HomeContent() {
   useEffect(() => {
     const savedM = localStorage.getItem('filter_show_movies');
     const savedTv = localStorage.getItem('filter_show_tv');
-    const savedGames = localStorage.getItem('filter_show_games');
     if (savedM !== null) setShowMovies(savedM === 'true');
     if (savedTv !== null) setShowTv(savedTv === 'true');
-    if (savedGames !== null) setShowGames(savedGames === 'true');
+    setShowGames(false);
   }, []);
 
   const toggleMovies = () => {
@@ -73,7 +72,7 @@ function HomeContent() {
   };
 
   const filteredMovies = movies.filter(movie => {
-    if (movie.media_type === 'game') return showGames;
+    if (movie.media_type === 'game') return false;
     const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
     return isTv ? showTv : showMovies;
   });

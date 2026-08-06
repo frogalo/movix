@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MovieModal } from "@/components/movie/MovieModal";
 import { TvShowModal } from "@/components/tv/TvShowModal";
 // import { GameModal } from "@/components/game/GameModal";
@@ -28,10 +28,14 @@ export function LibraryClient({
   userLibrary,
 }: LibraryClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const [selectedTvShowId, setSelectedTvShowId] = useState<number | null>(null);
+  const [initialSeason, setInitialSeason] = useState<number | null>(null);
+  const [highlightEpisode, setHighlightEpisode] = useState<number | null>(null);
   const [isMarking, setIsMarking] = useState<string | null>(null);
   const [finishedShows, setFinishedShows] = useState<any[]>([]);
+  const [isVotingMovie, setIsVotingMovie] = useState<number | null>(null);
 
   const mainRef = useRef<HTMLElement>(null);
   const scrollPosRef = useRef<number>(0);
@@ -47,6 +51,7 @@ export function LibraryClient({
   const [isWatchNextLoading, setIsWatchNextLoading] = useState(true);
   const [isWatchlistMoviesLoading, setIsWatchlistMoviesLoading] = useState(true);
   const [isRatingsLoading, setIsRatingsLoading] = useState(true);
+  const [isLoadingMoreRatings, setIsLoadingMoreRatings] = useState(false);
   const [isShowsLoading, setIsShowsLoading] = useState(true);
   const [_isGamesLoading, _setIsGamesLoading] = useState(false);
 
@@ -70,6 +75,7 @@ export function LibraryClient({
   const [isLoadingMoreShows, setIsLoadingMoreShows] = useState(false);
   const [hasMoreShows, setHasMoreShows] = useState(false);
   const [watchNextLimit, setWatchNextLimit] = useState(5);
+  const [watchlistMoviesLimit, setWatchlistMoviesLimit] = useState(5);
 
   const filteredWatchlistMovies = watchlistMovies.filter(
     (m) => !userLibrary.ratings.some((r) => r.movieId === m.id)
@@ -185,12 +191,25 @@ export function LibraryClient({
 
   const fetchRatings = useCallback(async (page: number) => {
     try {
-      setIsRatingsLoading(page === 1 ? ratedMoviesRef.current.length === 0 : true);
+      if (page === 1) {
+        setIsRatingsLoading(ratedMoviesRef.current.length === 0);
+      } else {
+        setIsLoadingMoreRatings(true);
+      }
       const res = await fetch(`/api/user/library/ratings?page=${page}`);
       if (res.ok) {
         const data = await res.json();
         const movies = data.ratedMovies || [];
-        setRatedMovies(movies);
+        setRatedMovies((prev) => {
+          if (page === 1) return movies;
+          const merged = [...prev];
+          movies.forEach((m: any) => {
+            if (!merged.some((existing) => existing.id === m.id)) {
+              merged.push(m);
+            }
+          });
+          return merged;
+        });
         const pagination = {
           currentPage: movies.length > 0 ? page : 0,
           totalPages: data.totalPages,
@@ -206,6 +225,7 @@ export function LibraryClient({
       console.error(err);
     } finally {
       setIsRatingsLoading(false);
+      setIsLoadingMoreRatings(false);
     }
   }, []);
 
@@ -260,6 +280,22 @@ export function LibraryClient({
     fetchRatings(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const movieId = searchParams.get('movieId');
+    const tvId = searchParams.get('tvId');
+    const season = searchParams.get('season');
+    const episode = searchParams.get('episode');
+    if (movieId) {
+      setSelectedMovie({ id: Number(movieId) });
+      router.replace('/library', { scroll: false });
+    } else if (tvId) {
+      if (season) setInitialSeason(Number(season));
+      if (episode) setHighlightEpisode(Number(episode));
+      setSelectedTvShowId(Number(tvId));
+      router.replace('/library', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // When ratingsPage changes (subsequent changes, skipping initial mount)
   const isFirstRatingsMount = useRef(true);
@@ -344,9 +380,34 @@ export function LibraryClient({
     router.refresh();
     fetchWatchNext();
     fetchWatchlistMovies();
-    fetchRatings(ratingsPage);
+    setRatingsPage(1);
+    fetchRatings(1);
     fetchShows();
     // fetchGames();
+  };
+
+  const handleQuickVote = async (movieId: number, vote: string | null, rating: number | null) => {
+    if (isVotingMovie === movieId) return;
+    setIsVotingMovie(movieId);
+    try {
+      if (vote === null && rating === null) {
+        await fetch(`/api/rating?movieId=${movieId}`, { method: "DELETE" });
+      } else {
+        const body: any = { movieId };
+        if (vote !== null) body.vote = vote;
+        if (rating !== null) body.rating = rating;
+        await fetch("/api/rating", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+      handleLibraryUpdate();
+    } catch (error) {
+      console.error("[QUICK_VOTE] Failed to quick vote movie:", error);
+    } finally {
+      setIsVotingMovie(null);
+    }
   };
 
   const handleMarkWatched = async (ep: any) => {
@@ -416,12 +477,16 @@ export function LibraryClient({
           filteredWatchlistMovies={filteredWatchlistMovies}
           watchNextLimit={watchNextLimit}
           setWatchNextLimit={setWatchNextLimit}
+          watchlistMoviesLimit={watchlistMoviesLimit}
+          setWatchlistMoviesLimit={setWatchlistMoviesLimit}
           isMarking={isMarking}
           handleMarkWatched={handleMarkWatched}
           setSelectedTvShowId={setSelectedTvShowId}
           setSelectedMovie={setSelectedMovie}
           watchNextLoading={isWatchNextLoading}
           watchlistMoviesLoading={isWatchlistMoviesLoading}
+          isVotingMovie={isVotingMovie}
+          handleQuickVote={handleQuickVote}
         />
 
         <RatingsSection
@@ -430,6 +495,7 @@ export function LibraryClient({
           setSelectedMovie={setSelectedMovie}
           setPage={setPage}
           loading={isRatingsLoading}
+          isLoadingMore={isLoadingMoreRatings}
         />
 
         <TrackedShowsSection
@@ -463,8 +529,14 @@ export function LibraryClient({
       <TvShowModal
         showId={selectedTvShowId}
         isOpen={!!selectedTvShowId}
-        onClose={() => setSelectedTvShowId(null)}
+        onClose={() => {
+          setSelectedTvShowId(null);
+          setInitialSeason(null);
+          setHighlightEpisode(null);
+        }}
         onLibraryUpdate={handleLibraryUpdate}
+        initialSeason={initialSeason}
+        highlightEpisode={highlightEpisode}
       />
 
       {/* <GameModal
