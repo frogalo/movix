@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { LibraryClient } from "@/components/library/LibraryClient";
@@ -6,12 +5,9 @@ import { LibraryClient } from "@/components/library/LibraryClient";
 export const dynamic = 'force-dynamic';
 
 export default async function LibraryPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const userId = session.user.id;
+  // Auth is enforced by middleware — session is guaranteed here
+  const session = (await auth())!;
+  const userId = session.user!.id!;
 
   // Gather ratings & watchlist metadata for client modal checks
   const ratingsMeta = await prisma.rating.findMany({

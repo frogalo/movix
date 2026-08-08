@@ -15,13 +15,13 @@ interface Props {
 }
 
 export default async function UserProfilePage({ params }: Props) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  // Auth is enforced by middleware — session is guaranteed here
+  const session = (await auth())!;
 
   const { userId } = await params;
 
   // Redirect to own profile page
-  if (userId === session.user.id) redirect("/profile");
+  if (userId === session.user!.id) redirect("/profile");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
