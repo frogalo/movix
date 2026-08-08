@@ -217,8 +217,19 @@ export function SocialFeedClient({
                       {/* Mobile overlay: title + rating on top of image */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent lg:hidden" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 lg:hidden">
-                        <h3 className="text-lg sm:text-xl font-black text-white font-['Space_Grotesk'] tracking-tight leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] line-clamp-2">
-                          {isRating ? (movieTitle ?? `Movie #${ratingItem!.movieId}`) : groupItem!.showTitle}
+                        <h3 className="text-lg sm:text-xl font-black text-white font-['Space_Grotesk'] tracking-tight leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] line-clamp-2 flex items-center gap-2 flex-wrap">
+                          {isRating ? (
+                            <span>{movieTitle ?? `Movie #${ratingItem!.movieId}`}</span>
+                          ) : (
+                            <>
+                              <span>{groupItem!.showTitle}</span>
+                              {isSingleEpisodeGroup && singleEpRow && (
+                                <span className="inline-flex items-center gap-1 font-mono font-extrabold text-[11px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-400/30 whitespace-nowrap">
+                                  S{singleEpRow.seasonNumber.toString().padStart(2, "0")} · E{singleEpRow.episodeNumber.toString().padStart(2, "0")}
+                                </span>
+                              )}
+                            </>
+                          )}
                         </h3>
                       </div>
 
@@ -311,8 +322,19 @@ export function SocialFeedClient({
 
                       {/* Desktop: Title + Rating (hidden on mobile where it's overlaid on image) */}
                       <div className="hidden lg:flex items-center justify-between gap-3">
-                        <h3 className="text-lg xl:text-xl font-black text-white font-['Space_Grotesk'] tracking-tight leading-tight group-hover:text-yellow-300 transition-colors duration-300 line-clamp-2 flex-1 min-w-0">
-                          {isRating ? (movieTitle ?? `Movie #${ratingItem!.movieId}`) : groupItem!.showTitle}
+                        <h3 className="text-lg xl:text-xl font-black text-white font-['Space_Grotesk'] tracking-tight leading-tight group-hover:text-yellow-300 transition-colors duration-300 line-clamp-2 flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                          {isRating ? (
+                            <span>{movieTitle ?? `Movie #${ratingItem!.movieId}`}</span>
+                          ) : (
+                            <>
+                              <span>{groupItem!.showTitle}</span>
+                              {isSingleEpisodeGroup && singleEpRow && (
+                                <span className="inline-flex items-center gap-1 font-mono font-extrabold text-xs px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-400/30 whitespace-nowrap">
+                                  S{singleEpRow.seasonNumber.toString().padStart(2, "0")} · E{singleEpRow.episodeNumber.toString().padStart(2, "0")}
+                                </span>
+                              )}
+                            </>
+                          )}
                         </h3>
 
                         {isRating && ratingItem!.rating && (
@@ -325,59 +347,65 @@ export function SocialFeedClient({
                       </div>
 
                       {/* Episode info */}
-                      {!isRating && isSingleEpisodeGroup && singleEpRow && (
+                      {!isRating && isSingleEpisodeGroup && singleEpRow && singleEpRow.episodeName && (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="inline-flex items-center gap-1 font-mono font-extrabold text-[11px] px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-300 border border-teal-400/30 whitespace-nowrap">
-                            S{singleEpRow.seasonNumber.toString().padStart(2, "0")} · E
-                            {singleEpRow.episodeNumber.toString().padStart(2, "0")}
+                          <span className="text-zinc-400 font-medium text-sm italic">
+                            &quot;{singleEpRow.episodeName}&quot;
                           </span>
-                          {singleEpRow.episodeName && (
-                            <span className="text-zinc-400 font-medium text-xs truncate max-w-[240px] italic">
-                              &quot;{singleEpRow.episodeName}&quot;
-                            </span>
-                          )}
                         </div>
                       )}
 
                       {/* Grouped Episodes List */}
-                      {!isRating && !isSingleEpisodeGroup && (
-                        <div className="space-y-1 bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
-                          {uniqueEpisodeRows.map((row, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs py-0.5 gap-2">
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="inline-flex items-center gap-1 font-mono font-extrabold text-[11px] px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-300 border border-teal-400/25 whitespace-nowrap shrink-0">
-                                  S{row.seasonNumber.toString().padStart(2, "0")} · E
-                                  {row.episodeNumber.toString().padStart(2, "0")}
-                                </span>
-                                {row.episodeName && (
-                                  <span className="text-zinc-400 truncate text-[12px] min-w-0 flex-1">
-                                    {row.episodeName}
+                      {!isRating && !isSingleEpisodeGroup && (() => {
+                        const MAX_VISIBLE = 5;
+                        const visibleRows = uniqueEpisodeRows.slice(0, MAX_VISIBLE);
+                        const hiddenCount = uniqueEpisodeRows.length - MAX_VISIBLE;
+                        return (
+                          <div className="space-y-1 bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
+                            {visibleRows.map((row, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs py-0.5 gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="inline-flex items-center gap-1 font-mono font-extrabold text-[11px] px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-300 border border-teal-400/25 whitespace-nowrap shrink-0">
+                                    S{row.seasonNumber.toString().padStart(2, "0")} · E
+                                    {row.episodeNumber.toString().padStart(2, "0")}
                                   </span>
+                                  {row.episodeName && (
+                                    <span className="text-zinc-400 truncate text-[12px] min-w-0 flex-1">
+                                      {row.episodeName}
+                                    </span>
+                                  )}
+                                </div>
+                                {row.users.length > 0 && groupItem!.users.length > 1 && (
+                                  <div className="flex -space-x-1.5 overflow-hidden shrink-0">
+                                    {row.users.map((u) => (
+                                      <Link
+                                        key={u.id}
+                                        href={`/users/${u.id}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        title={u.name ?? "Member"}
+                                      >
+                                        <UserAvatar
+                                          image={u.image}
+                                          name={u.name}
+                                          sizeClassName="w-4 h-4 ring-1 ring-zinc-950"
+                                          textClassName="text-[7px]"
+                                        />
+                                      </Link>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
-                              {row.users.length > 0 && (
-                                <div className="flex -space-x-1.5 overflow-hidden shrink-0">
-                                  {row.users.map((u) => (
-                                    <Link
-                                      key={u.id}
-                                      href={`/users/${u.id}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      title={u.name ?? "Member"}
-                                    >
-                                      <UserAvatar
-                                        image={u.image}
-                                        name={u.name}
-                                        sizeClassName="w-4 h-4 ring-1 ring-zinc-950"
-                                        textClassName="text-[7px]"
-                                      />
-                                    </Link>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            ))}
+                            {hiddenCount > 0 && (
+                              <div className="pt-1 mt-0.5 border-t border-white/5">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 px-2 py-0.5">
+                                  +{hiddenCount} more episode{hiddenCount > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Personal badge — always visible */}
                       {(userHasRatedMovie || userHasWatchedShow) && (
