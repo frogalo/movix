@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  webpack: (config) => {
+    config.optimization.minimize = false;
+    return config;
+  },
   experimental: {
     serverMinification: false,
   },
