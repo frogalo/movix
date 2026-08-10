@@ -13,25 +13,38 @@
 # testing
 /coverage
 
-# next.js
+# next.js & build caches
 /.next/
 /out/
+/.turbo
 
 # production
 /build
 
-# misc
+# misc & OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 *.pem
+*.key
+*.crt
 
-# debug
+# debug & logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -41,16 +54,27 @@ yarn-error.log*
 next-env.d.ts
 DESIGN.md
 
-# IDEs
+# IDEs & Editors
 .idea
 .vscode
+*.swp
+*.swo
+*~
+
+# AI Assistants & Agent Configs
+.claude
+.codex
+.cursor
+.gemini
+.supermaven
 
 # Prisma local database files
 *.db
 *.db-journal
 *.sqlite
 *.sqlite3
+*.sqlite-journal
+*.db-shm
+*.db-wal
 
-# Explicitly allow .env.example to be committed
-!.env.example
 aislop-scan.json
