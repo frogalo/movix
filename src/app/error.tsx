@@ -12,7 +12,10 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    // NEXT_REDIRECT is an internal Next.js mechanism for redirect(), not a real error
+    if (error?.message !== "NEXT_REDIRECT" && error?.digest !== "NEXT_REDIRECT") {
+      console.error(error);
+    }
   }, [error]);
 
   return (
