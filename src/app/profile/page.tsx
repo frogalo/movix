@@ -1,4 +1,5 @@
 import { TMDB_BASE_URL } from '@/lib/config';
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { prisma } from "@/lib/prisma";
@@ -8,9 +9,11 @@ import { ProfileActions } from "@/components/profile/ProfileActions";
 import { UserAvatar } from "@/components/common/UserAvatar";
 
 export default async function Profile() {
-  // Auth is enforced by middleware — session is guaranteed here
-  const session = (await auth())!;
-  const userId = session.user!.id!;
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

@@ -152,9 +152,11 @@ async function getFeedWithPosters(feed: FeedGroupedItem[], apiKey: string | unde
 }
 
 export default async function SocialPage() {
-  // Auth is enforced by middleware — session is guaranteed here
-  const session = (await auth())!;
-  const currentUserId = session.user!.id!;
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login");
+  }
+  const currentUserId = session.user.id;
   const apiKey = process.env.TMDB_API_KEY;
 
   const follows = await prisma.follow.findMany({

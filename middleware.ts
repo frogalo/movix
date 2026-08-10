@@ -29,9 +29,13 @@ export default auth((request) => {
 export const config = {
   matcher: [
     "/login",
+    "/profile",
     "/profile/:path*",
+    "/library",
     "/library/:path*",
+    "/social",
     "/social/:path*",
+    "/users",
     "/users/:path*",
   ],
 };
