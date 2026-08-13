@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/email";
 import { VerifyEmailEmail } from "@/emails/VerifyEmailEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { z } from "zod";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createElement } from "react";
 
 export type AuthFormState = {
@@ -90,6 +91,9 @@ export async function loginAction(
       redirectTo: "/profile",
     });
   } catch (error) {
+    // Always re-throw Next.js redirect errors — they are not real errors
+    if (isRedirectError(error)) throw error;
+
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
         return { error: "Invalid email or password." };
@@ -168,6 +172,9 @@ export async function registerAction(
       redirectTo: "/profile",
     });
   } catch (error) {
+    // Always re-throw Next.js redirect errors — they are not real errors
+    if (isRedirectError(error)) throw error;
+
     if (error instanceof AuthError) {
       return { error: "Account created, but automatic sign-in failed. Try logging in." };
     }
