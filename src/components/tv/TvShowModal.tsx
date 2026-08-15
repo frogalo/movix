@@ -624,7 +624,34 @@ export function TvShowModal({
 
                       {details.awards?.hasAwards && (
                         <div className="mb-5">
-                          <TrophyShowcase awards={details.awards} />
+                          <TrophyShowcase
+                            awards={details.awards}
+                            title={details.name}
+                            onAwardClick={async (award) => {
+                              if (!award.recipient) return;
+                              const recipientName = award.recipient.trim().toLowerCase();
+                              const castMatch = details.cast?.find((c: any) => {
+                                const name = (c.name || '').toLowerCase();
+                                return name === recipientName || name.includes(recipientName) || recipientName.includes(name);
+                              });
+                              if (castMatch?.id) {
+                                setSelectedActorId(castMatch.id);
+                                return;
+                              }
+                              try {
+                                const res = await fetch(`/api/search?q=${encodeURIComponent(award.recipient)}`);
+                                if (res.ok) {
+                                  const searchData = await res.json();
+                                  const personMatch = searchData.results?.find((r: any) => r.media_type === 'person') || searchData.results?.[0];
+                                  if (personMatch?.id) {
+                                    setSelectedActorId(personMatch.id);
+                                  }
+                                }
+                              } catch (e) {
+                                console.error('[AWARD_CLICK_TV_SEARCH_ERROR]', e);
+                              }
+                            }}
+                          />
                         </div>
                       )}
 

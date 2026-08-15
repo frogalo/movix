@@ -7,6 +7,7 @@ export type AwardItem = {
   category: string;
   year: number | null;
   forWork: string | null;
+  recipient?: string | null;
   isNomination: boolean;
 };
 
@@ -156,10 +157,32 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
       return claimList
         .map((c: any) => {
           const awardId = c.mainsnak?.datavalue?.value?.id;
-          const timeVal = c.qualifiers?.P585?.[0]?.datavalue?.value?.time;
-          const year = timeVal ? parseInt(timeVal.substring(1, 5), 10) : null;
-          const forWorkId = c.qualifiers?.P1686?.[0]?.datavalue?.value?.id;
-          return { awardId, year, forWorkId, isNomination };
+
+          // 1. Check all time qualifiers (P585 point in time, P580 start time, P582 end time, etc.)
+          let year: number | null = null;
+          const qualKeys = ['P585', 'P580', 'P582', ...Object.keys(c.qualifiers || {})];
+          for (const qKey of qualKeys) {
+            const timeVal = c.qualifiers?.[qKey]?.[0]?.datavalue?.value?.time;
+            if (timeVal) {
+              const y = parseInt(timeVal.substring(1, 5), 10);
+              if (y >= 1900 && y <= 2100) {
+                year = y;
+                break;
+              }
+            }
+          }
+
+          // P1686 = for work (film title on actor page)
+          const forWorkId = c.qualifiers?.P1686?.[0]?.datavalue?.value?.id || null;
+          // P1346 = winner recipient, P371 = presenter/recipient on movie page
+          const recipientId =
+            c.qualifiers?.P1346?.[0]?.datavalue?.value?.id ||
+            c.qualifiers?.P371?.[0]?.datavalue?.value?.id ||
+            null;
+          // P805 = subject of (ceremony edition entity)
+          const ceremonyId = c.qualifiers?.P805?.[0]?.datavalue?.value?.id || null;
+
+          return { awardId, year, forWorkId, recipientId, ceremonyId, isNomination };
         })
         .filter((x: any) => Boolean(x.awardId));
     };
@@ -173,24 +196,32 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
       return emptyResult;
     }
 
-    // Batch resolve QIDs to English labels
-    const idsToResolve = Array.from(
-      new Set([...allRaw.map((x) => x.awardId), ...allRaw.map((x) => x.forWorkId).filter(Boolean)])
-    ).slice(0, 50);
+    // Batch resolve all QIDs to English labels in chunks of 50
+    const allIds = Array.from(
+      new Set([
+        ...allRaw.map((x) => x.awardId),
+        ...allRaw.map((x) => x.forWorkId).filter(Boolean),
+        ...allRaw.map((x) => x.recipientId).filter(Boolean),
+        ...allRaw.map((x) => x.ceremonyId).filter(Boolean),
+      ])
+    );
 
-    const batchUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${idsToResolve.join('|')}&props=labels&languages=en&format=json`;
-    const bRes = await fetch(batchUrl, {
-      headers: {
-        'User-Agent': 'Movix/1.0 (https://movix.app; contact@movix.app)',
-      },
-    });
-
-    if (!bRes.ok) return emptyResult;
-
-    const bData = await bRes.json();
     const labelMap: Record<string, string> = {};
-    for (const [k, v] of Object.entries((bData.entities || {}) as Record<string, any>)) {
-      labelMap[k] = v.labels?.en?.value || '';
+    for (let i = 0; i < allIds.length; i += 50) {
+      const chunk = allIds.slice(i, i + 50);
+      const batchUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${chunk.join('|')}&props=labels&languages=en&format=json`;
+      const bRes = await fetch(batchUrl, {
+        headers: {
+          'User-Agent': 'Movix/1.0 (https://movix.app; contact@movix.app)',
+        },
+      });
+
+      if (bRes.ok) {
+        const bData = await bRes.json();
+        for (const [k, v] of Object.entries((bData.entities || {}) as Record<string, any>)) {
+          labelMap[k] = v.labels?.en?.value || '';
+        }
+      }
     }
 
     const winsMap = new Map<string, AwardItem>();
@@ -203,16 +234,28 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
       const classified = classifyAward(rawAwardName);
       if (!classified) continue;
 
+      // If year was not in qualifiers, try extracting 4-digit year from ceremony or award name
+      let resolvedYear = item.year;
+      if (!resolvedYear) {
+        const ceremonyLabel = item.ceremonyId ? labelMap[item.ceremonyId] || '' : '';
+        const match = (ceremonyLabel + ' ' + rawAwardName).match(/\b(19\d\d|20\d\d)\b/);
+        if (match) {
+          resolvedYear = parseInt(match[1], 10);
+        }
+      }
+
       const forWork = item.forWorkId ? labelMap[item.forWorkId] || null : null;
-      const dedupeKey = `${classified.type}-${classified.cleanCategory}-${item.year || 'na'}-${forWork || 'na'}`;
+      const recipient = item.recipientId ? labelMap[item.recipientId] || null : null;
+      const dedupeKey = `${classified.type}-${classified.cleanCategory}-${resolvedYear || 'na'}-${forWork || recipient || 'na'}`;
 
       const awardObj: AwardItem = {
         id: item.awardId,
         type: classified.type,
         typeLabel: classified.typeLabel,
         category: classified.cleanCategory,
-        year: item.year,
+        year: resolvedYear,
         forWork,
+        recipient,
         isNomination: item.isNomination,
       };
 

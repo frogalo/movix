@@ -154,6 +154,49 @@ export function ActorModal({
     }
   };
 
+  const handleAwardClick = async (award: any) => {
+    if (!award.forWork) return;
+    const workName = award.forWork.trim().toLowerCase();
+
+    // 1. Try to find the title in the actor's cast credits
+    const creditMatch = data?.credits?.cast?.find((c: any) => {
+      const titleLower = (c.title || c.name || '').toLowerCase();
+      return titleLower === workName || titleLower.includes(workName) || workName.includes(titleLower);
+    });
+
+    if (creditMatch) {
+      handleMediaClick(creditMatch);
+      return;
+    }
+
+    // 2. Search TMDB API for the movie/tv show
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(award.forWork)}`);
+      if (res.ok) {
+        const searchData = await res.json();
+        const match = searchData.results?.find((r: any) => r.media_type === 'movie' || r.media_type === 'tv') || searchData.results?.[0];
+        if (match) {
+          if (match.media_type === 'tv' && onSelectTvShow) {
+            onSelectTvShow(match.id);
+          } else if (onSelectMovie) {
+            onSelectMovie({
+              id: match.id,
+              title: match.title || match.name,
+              poster_path: match.poster_path,
+              backdrop_path: match.backdrop_path,
+              release_date: match.release_date || match.first_air_date,
+              vote_average: match.vote_average,
+              vote_count: match.vote_count,
+              overview: match.overview,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[AWARD_CLICK_SEARCH_ERROR]', e);
+    }
+  };
+
   if (!mounted || typeof document === "undefined") return null;
 
   const heroImage = data?.profile_path
@@ -315,27 +358,20 @@ export function ActorModal({
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent md:bg-gradient-to-r md:from-transparent md:via-zinc-950/30 md:to-zinc-950" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,204,0,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(87,27,193,0.3),transparent_50%)] pointer-events-none" />
 
+                  {/* Awards summary badge floating at bottom of actor image on desktop */}
+                  {data.awards?.hasAwards && (
+                    <div className="absolute bottom-6 left-6 z-20 hidden md:block">
+                      <TrophyShowcase awards={data.awards} variant="badge-only" />
+                    </div>
+                  )}
+
                   {/* Mobile-only info overlay at bottom of hero */}
                   <div className="relative z-10 p-6 md:hidden">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="rounded-full border border-yellow-400/30 bg-yellow-400/15 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-yellow-300">
-                        {data.known_for_department || "Actor"}
-                      </span>
-                      {data.awards?.hasAwards && (
+                    {data.awards?.hasAwards && (
+                      <div className="mb-2">
                         <TrophyShowcase awards={data.awards} variant="badge-only" />
-                      )}
-                      {data.imdb_id && (
-                        <a
-                          href={`https://www.imdb.com/name/${data.imdb_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/50 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-zinc-300 hover:text-white"
-                        >
-                          <span>IMDb</span>
-                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                        </a>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <h2 className="font-headline-lg text-3xl font-extrabold text-white drop-shadow-md">
                       {data.name}
                     </h2>
@@ -350,29 +386,6 @@ export function ActorModal({
                 <div className="flex-1 overflow-visible md:overflow-y-auto p-5 pb-24 md:p-8 md:pb-10 md:pt-8 overscroll-none space-y-6">
                   {/* Desktop Header */}
                   <header className="hidden md:block space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-label-sm uppercase tracking-[0.24em] font-bold text-yellow-300">
-                        {data.known_for_department || "Actor"}
-                      </span>
-                      <span className="text-label-sm uppercase tracking-[0.24em] text-zinc-500 font-semibold">
-                        TMDB Spotlight
-                      </span>
-                      {data.awards?.hasAwards && (
-                        <TrophyShowcase awards={data.awards} variant="badge-only" />
-                      )}
-                      {data.imdb_id && (
-                        <a
-                          href={`https://www.imdb.com/name/${data.imdb_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
-                        >
-                          <span>IMDb Profile</span>
-                          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
-                        </a>
-                      )}
-                    </div>
-
                     <h2 className="font-display-xl text-4xl lg:text-5xl font-extrabold leading-none tracking-[-0.03em] text-white">
                       {data.name}
                     </h2>
@@ -401,7 +414,7 @@ export function ActorModal({
 
                   {/* Modern Borderless Smart Trophy Showcase */}
                   {data.awards?.hasAwards && (
-                    <TrophyShowcase awards={data.awards} />
+                    <TrophyShowcase awards={data.awards} onAwardClick={handleAwardClick} />
                   )}
 
                   {/* Stat Highlights Card */}

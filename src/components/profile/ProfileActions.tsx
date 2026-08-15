@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
@@ -25,6 +25,29 @@ export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps
 
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [isTogglingPrivacy, setIsTogglingPrivacy] = useState(false);
+
+  const [showTopRatedMobile, setShowTopRatedMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const val = localStorage.getItem("movix_show_top_rated_mobile");
+      setShowTopRatedMobile(val === "true");
+    }
+  }, []);
+
+  const handleToggleTopRatedMobile = () => {
+    const nextVal = !showTopRatedMobile;
+    setShowTopRatedMobile(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("movix_show_top_rated_mobile", String(nextVal));
+      window.dispatchEvent(new Event("movix-settings-changed"));
+    }
+    setSuccessMessage(
+      nextVal
+        ? "Top Rated added to mobile bottom navigation."
+        : "Top Rated removed from mobile bottom navigation."
+    );
+  };
 
   const handleTogglePrivacy = async () => {
     setIsTogglingPrivacy(true);
@@ -200,7 +223,35 @@ export function ProfileActions({ initialIsPrivate = false }: ProfileActionsProps
           Data & Settings
         </h3>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">          {/* Privacy Card */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* Top Rated Mobile Navigation Card */}
+          <div className="flex flex-col justify-between p-5 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition">
+            <div className="space-y-2 mb-4">
+              <h4 className="font-semibold text-white text-sm flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-yellow-400 text-[18px]">star</span>
+                Top Rated on Mobile
+              </h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Add an extra Top Rated shortcut to the bottom navigation bar on mobile and small screens.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleTopRatedMobile}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+                showTopRatedMobile
+                  ? "bg-yellow-400/20 hover:bg-yellow-400/30 border border-yellow-400/40 text-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
+                  : "bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-zinc-400"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: showTopRatedMobile ? "'FILL' 1" : "'FILL' 0" }}>
+                {showTopRatedMobile ? "check_circle" : "radio_button_unchecked"}
+              </span>
+              {showTopRatedMobile ? "Enabled" : "Disabled"}
+            </button>
+          </div>
+
+          {/* Privacy Card */}
           <div className="flex flex-col justify-between p-5 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition">
             <div className="space-y-2 mb-4">
               <h4 className="font-semibold text-white text-sm">Account Privacy</h4>

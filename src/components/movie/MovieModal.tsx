@@ -104,6 +104,36 @@ export function MovieModal({
 
   if (!currentMovie) return null;
 
+  const handleAwardClick = async (award: any) => {
+    if (!award.recipient) return;
+    const recipientName = award.recipient.trim().toLowerCase();
+
+    // 1. Check cast list in extraInfo
+    const castMatch = extraInfo?.cast?.find((c: any) => {
+      const name = (c.name || '').toLowerCase();
+      return name === recipientName || name.includes(recipientName) || recipientName.includes(name);
+    });
+
+    if (castMatch?.id) {
+      setSelectedActorId(castMatch.id);
+      return;
+    }
+
+    // 2. Search TMDB API for person
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(award.recipient)}`);
+      if (res.ok) {
+        const searchData = await res.json();
+        const personMatch = searchData.results?.find((r: any) => r.media_type === 'person') || searchData.results?.[0];
+        if (personMatch?.id) {
+          setSelectedActorId(personMatch.id);
+        }
+      }
+    } catch (e) {
+      console.error('[AWARD_CLICK_PERSON_SEARCH_ERROR]', e);
+    }
+  };
+
   const movieTitle = currentMovie.title || extraInfo?.title || "Movie";
   const backdropPath = currentMovie.backdrop_path || extraInfo?.backdrop_path || null;
   const posterPath = currentMovie.poster_path || extraInfo?.poster_path || null;
@@ -262,15 +292,19 @@ export function MovieModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/15 to-transparent md:bg-gradient-to-r md:from-transparent md:to-background/85" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,204,0,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(87,27,193,0.3),transparent_45%)]" />
 
-                <div className="absolute bottom-6 left-6 right-6 md:hidden">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <div className="inline-flex rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-yellow-300">
-                      Trending Pick
-                    </div>
-                    {extraInfo?.awards?.hasAwards && (
-                      <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
-                    )}
+                {/* Awards summary badge floating at bottom of movie image on desktop */}
+                {extraInfo?.awards?.hasAwards && (
+                  <div className="absolute bottom-6 left-6 z-20 hidden md:block">
+                    <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
                   </div>
+                )}
+
+                <div className="absolute bottom-6 left-6 right-6 md:hidden">
+                  {extraInfo?.awards?.hasAwards && (
+                    <div className="mb-2">
+                      <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
+                    </div>
+                  )}
                   <h2 className="font-headline-lg text-3xl text-white drop-shadow-lg">
                     {movieTitle}
                   </h2>
@@ -287,9 +321,6 @@ export function MovieModal({
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-label-sm uppercase tracking-[0.24em] text-yellow-300">
                       Trending #{Math.max(1, Math.ceil((voteAverage || 1) / 2))}
-                    </span>
-                    <span className="text-label-sm uppercase tracking-[0.24em] text-zinc-500">
-                      TMDB Spotlight
                     </span>
                     {extraInfo?.awards?.hasAwards && (
                       <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
@@ -329,7 +360,11 @@ export function MovieModal({
                 <div className="mt-0 flex flex-col gap-8 md:mt-8">
                   {/* Modern Borderless Smart Trophy Showcase */}
                   {extraInfo?.awards?.hasAwards && (
-                    <TrophyShowcase awards={extraInfo.awards} />
+                    <TrophyShowcase
+                      awards={extraInfo.awards}
+                      title={movie?.title || extraInfo?.title}
+                      onAwardClick={handleAwardClick}
+                    />
                   )}
                   <div className="flex flex-wrap items-center gap-5">
                     <div className="flex items-center gap-5 rounded-[1.5rem] border border-white/5 bg-surface-container-low/60 p-4">

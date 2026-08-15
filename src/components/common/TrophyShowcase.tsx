@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AwardItem, AwardsSummary } from '@/lib/awards';
 
 interface TrophyShowcaseProps {
@@ -8,12 +8,19 @@ interface TrophyShowcaseProps {
   title?: string;
   variant?: 'full' | 'compact' | 'badge-only';
   className?: string;
+  onAwardClick?: (item: AwardItem) => void;
 }
 
-export function TrophyShowcase({ awards, variant = 'full', className = '' }: TrophyShowcaseProps) {
-  const [activeTab, setActiveTab] = useState<'wins' | 'noms' | 'all'>('wins');
-  const [selectedType, setSelectedType] = useState<string>('all');
+export function TrophyShowcase({
+  awards,
+  title,
+  variant = 'full',
+  className = '',
+  onAwardClick,
+}: TrophyShowcaseProps) {
+  const [activeTab, setActiveTab] = useState<'all' | 'wins' | 'noms'>('all');
   const [isExpanded, setIsExpanded] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   if (!awards || !awards.hasAwards) {
     return null;
@@ -31,64 +38,88 @@ export function TrophyShowcase({ awards, variant = 'full', className = '' }: Tro
     nominations,
   } = awards;
 
-  // Award styling configuration
+  // Medallion and card styling configuration based on award type and status
   const getAwardTheme = (type: string, isNomination: boolean) => {
     if (isNomination) {
       return {
-        trophyColor: 'text-zinc-500',
+        cardBorder: 'border-zinc-800 hover:border-zinc-600',
+        ringStyle: 'border-[3px] border-zinc-400/80 shadow-[0_0_18px_rgba(255,255,255,0.15)] bg-gradient-to-b from-zinc-500/25 via-zinc-900/90 to-zinc-950',
+        trophyColor: 'text-zinc-300 drop-shadow-[0_0_6px_rgba(255,255,255,0.2)]',
         fill: 0,
-        badgeBg: 'bg-zinc-800/50',
-        labelColor: 'text-zinc-400',
+        statusLabel: 'NOMINEE',
+        statusColor: 'text-zinc-400',
+        prizeColor: 'text-white',
+        dividerColor: 'bg-zinc-700/60',
+        hoverGlow: 'hover:shadow-[0_0_20px_rgba(255,255,255,0.06)]',
       };
     }
 
     switch (type) {
       case 'oscar':
-        return {
-          trophyColor: 'text-amber-400',
-          fill: 1,
-          badgeBg: 'bg-amber-500/15',
-          labelColor: 'text-amber-200',
-        };
       case 'emmy':
         return {
-          trophyColor: 'text-yellow-400',
+          cardBorder: 'border-amber-500/30 hover:border-amber-400/70',
+          ringStyle: 'border-[3px] border-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.4)] bg-gradient-to-b from-amber-500/30 via-zinc-900/90 to-zinc-950',
+          trophyColor: 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]',
           fill: 1,
-          badgeBg: 'bg-yellow-500/15',
-          labelColor: 'text-yellow-200',
+          statusLabel: 'WINNER',
+          statusColor: 'text-amber-400',
+          prizeColor: 'text-amber-200',
+          dividerColor: 'bg-amber-500/40',
+          hoverGlow: 'hover:shadow-[0_0_25px_rgba(251,191,36,0.18)]',
         };
       case 'golden_globe':
         return {
-          trophyColor: 'text-cyan-400',
+          cardBorder: 'border-purple-500/30 hover:border-purple-400/70',
+          ringStyle: 'border-[3px] border-purple-400 shadow-[0_0_22px_rgba(168,85,247,0.4)] bg-gradient-to-b from-purple-500/30 via-zinc-900/90 to-zinc-950',
+          trophyColor: 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]',
           fill: 1,
-          badgeBg: 'bg-cyan-500/15',
-          labelColor: 'text-cyan-200',
+          statusLabel: 'WINNER',
+          statusColor: 'text-purple-400',
+          prizeColor: 'text-purple-200',
+          dividerColor: 'bg-purple-500/40',
+          hoverGlow: 'hover:shadow-[0_0_25px_rgba(168,85,247,0.18)]',
         };
       case 'bafta':
         return {
-          trophyColor: 'text-purple-400',
+          cardBorder: 'border-cyan-500/30 hover:border-cyan-400/70',
+          ringStyle: 'border-[3px] border-cyan-400 shadow-[0_0_22px_rgba(6,182,212,0.4)] bg-gradient-to-b from-cyan-500/30 via-zinc-900/90 to-zinc-950',
+          trophyColor: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]',
           fill: 1,
-          badgeBg: 'bg-purple-500/15',
-          labelColor: 'text-purple-200',
+          statusLabel: 'WINNER',
+          statusColor: 'text-cyan-400',
+          prizeColor: 'text-cyan-200',
+          dividerColor: 'bg-cyan-500/40',
+          hoverGlow: 'hover:shadow-[0_0_25px_rgba(6,182,212,0.18)]',
         };
       case 'cannes':
         return {
-          trophyColor: 'text-emerald-400',
+          cardBorder: 'border-emerald-500/30 hover:border-emerald-400/70',
+          ringStyle: 'border-[3px] border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.4)] bg-gradient-to-b from-emerald-500/30 via-zinc-900/90 to-zinc-950',
+          trophyColor: 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]',
           fill: 1,
-          badgeBg: 'bg-emerald-500/15',
-          labelColor: 'text-emerald-200',
+          statusLabel: 'WINNER',
+          statusColor: 'text-emerald-400',
+          prizeColor: 'text-emerald-200',
+          dividerColor: 'bg-emerald-500/40',
+          hoverGlow: 'hover:shadow-[0_0_25px_rgba(16,185,129,0.18)]',
         };
       default:
         return {
-          trophyColor: 'text-amber-400',
+          cardBorder: 'border-amber-500/30 hover:border-amber-400/70',
+          ringStyle: 'border-[3px] border-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.4)] bg-gradient-to-b from-amber-500/30 via-zinc-900/90 to-zinc-950',
+          trophyColor: 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]',
           fill: 1,
-          badgeBg: 'bg-amber-500/15',
-          labelColor: 'text-amber-200',
+          statusLabel: 'WINNER',
+          statusColor: 'text-amber-400',
+          prizeColor: 'text-amber-200',
+          dividerColor: 'bg-amber-500/40',
+          hoverGlow: 'hover:shadow-[0_0_25px_rgba(251,191,36,0.18)]',
         };
     }
   };
 
-  // Construct headline summary
+  // Headline summary
   const summaryParts: string[] = [];
   if (oscarWins > 0) summaryParts.push(`${oscarWins} Oscar${oscarWins > 1 ? 's' : ''}`);
   if (emmyWins > 0) summaryParts.push(`${emmyWins} Emmy${emmyWins > 1 ? 's' : ''}`);
@@ -100,6 +131,18 @@ export function TrophyShowcase({ awards, variant = 'full', className = '' }: Tro
     ? summaryParts.join(' • ')
     : `${totalWins} Won`;
 
+  // Badge-only variant (Header / Mobile Pill)
+  if (variant === 'badge-only') {
+    return (
+      <div className={`inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-300 backdrop-blur-md border border-amber-400/20 ${className}`}>
+        <span className="material-symbols-outlined text-[15px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
+          emoji_events
+        </span>
+        <span>{totalWins > 0 ? headlineWins : `${totalNominations} Nominations`}</span>
+      </div>
+    );
+  }
+
   // Filter items
   let displayItems: AwardItem[] = [];
   if (activeTab === 'wins') {
@@ -110,238 +153,205 @@ export function TrophyShowcase({ awards, variant = 'full', className = '' }: Tro
     displayItems = [...wins, ...nominations];
   }
 
-  if (selectedType !== 'all') {
-    displayItems = displayItems.filter((item) => item.type === selectedType);
-  }
-
-  const uniqueTypes = Array.from(new Set([...wins.map((w) => w.type), ...nominations.map((n) => n.type)]));
   const totalCount = wins.length + nominations.length;
 
-  // Badge-only variant (Header / Mobile Pill)
-  if (variant === 'badge-only') {
+  // Card renderer
+  const renderCard = (item: AwardItem, index: number, isGrid = false) => {
+    const theme = getAwardTheme(item.type, item.isNomination);
+    // For an actor page, item.forWork is the movie title (e.g. "Ben-Hur" or "The Bear")
+    // For a movie/tv page, item.forWork is null or matches title, so category is the primary label
+    const isActorPage = Boolean(item.forWork && (!title || item.forWork.toLowerCase() !== title.toLowerCase()));
+    const primarySubtitle = isActorPage ? item.forWork! : item.category;
+
+    // Hover details: For movie show recipient person name; for actor show category
+    const hoverDetail = isActorPage
+      ? (item.category !== primarySubtitle ? item.category : null)
+      : (item.recipient ? `${item.isNomination ? 'Nominee' : 'Winner'}: ${item.recipient}` : (item.category !== primarySubtitle ? item.category : null));
+
+    const isClickable = Boolean(onAwardClick && ((isActorPage && item.forWork) || (!isActorPage && item.recipient)));
+
     return (
-      <div className={`inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-300 backdrop-blur-md ${className}`}>
-        <span className="material-symbols-outlined text-[15px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
-          emoji_events
-        </span>
-        <span>{totalWins > 0 ? headlineWins : `${totalNominations} Nominations`}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`w-full overflow-hidden rounded-2xl bg-zinc-900/40 p-3.5 backdrop-blur-xl transition-all duration-300 ${className}`}>
-      {/* Sleek, minimal status bar without clutter or bulky headers */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {totalWins > 0 && (
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400">
-              <span className="material-symbols-outlined text-[17px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
-                emoji_events
-              </span>
-              <span>{totalWins} {totalWins === 1 ? 'Win' : 'Wins'}</span>
-            </div>
-          )}
-
-          {totalNominations > 0 && (
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400">
-              <span className="material-symbols-outlined text-[17px] text-zinc-500" style={{ fontVariationSettings: "'FILL' 0" }}>
-                emoji_events
-              </span>
-              <span>{totalNominations} {totalNominations === 1 ? 'Nomination' : 'Nominations'}</span>
-            </div>
-          )}
+      <div
+        key={`${item.id}-${item.isNomination ? 'nom' : 'win'}-${index}`}
+        onClick={() => isClickable && onAwardClick?.(item)}
+        className={`group relative ${isGrid ? 'w-full' : 'snap-start shrink-0 w-28 sm:w-32'} rounded-xl bg-zinc-950/90 border ${theme.cardBorder} ${theme.hoverGlow} pt-7 pb-2.5 px-2 flex flex-col items-center text-center transition-all duration-300 select-none ${isClickable ? 'cursor-pointer hover:scale-[1.03] active:scale-[0.98]' : 'cursor-default'} hover:z-30`}
+        title={`${item.typeLabel} (${item.year || 'N/A'}) - ${item.category}${item.recipient ? ` (${item.recipient})` : ''}${item.forWork ? ` for ${item.forWork}` : ''}`}
+      >
+        {/* 1. Medallion Trophy extending OUTSIDE top border */}
+        <div className={`absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full ${theme.ringStyle} flex items-center justify-center transition-transform group-hover:scale-110 duration-300 z-10`}>
+          <span
+            className={`material-symbols-outlined text-[20px] sm:text-[22px] ${theme.trophyColor}`}
+            style={{ fontVariationSettings: `'FILL' ${theme.fill}` }}
+          >
+            emoji_events
+          </span>
         </div>
 
-        {/* View All Toggle */}
-        {totalCount > 0 && (
+        {/* 2. Status & Year on separate lines without dashes */}
+        <span className={`text-[10px] font-black uppercase tracking-wider ${theme.statusColor} mt-0.5 leading-tight`}>
+          {theme.statusLabel}
+        </span>
+        {item.year && (
+          <span className="text-[10px] font-bold text-zinc-400 mt-0.5 leading-tight">
+            {item.year}
+          </span>
+        )}
+
+        {/* 3. Prize Name */}
+        <h4 className="text-xs sm:text-[13px] font-black text-white tracking-tight w-full truncate mt-0.5" title={item.typeLabel}>
+          {item.typeLabel}
+        </h4>
+
+        {/* 4. Category (for movie) or Movie Title (for actor) */}
+        <p
+          className="text-[11px] italic font-semibold text-zinc-300 group-hover:text-white transition-colors truncate w-full mt-0.5 px-0.5"
+          title={primarySubtitle}
+        >
+          {primarySubtitle}
+        </p>
+
+        {/* 5. Hover Details: Recipient Name for movie / Category for actor (ABSOLUTE: zero layout shift) */}
+        {(hoverDetail || isClickable) && (
+          <div className="hidden md:block pointer-events-none absolute top-full left-[-1px] right-[-1px] z-30 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-zinc-950/95 border border-t-0 border-zinc-700/70 rounded-b-xl p-2 shadow-2xl backdrop-blur-xl mt-[-1px]">
+            <div className={`w-4 h-[1px] ${theme.dividerColor} mx-auto mb-1`} />
+            {hoverDetail && (
+              <p className="text-[10px] text-zinc-200 font-medium line-clamp-3 leading-tight px-0.5">
+                {hoverDetail}
+              </p>
+            )}
+            {isClickable && (
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-400">
+                <span>View {isActorPage ? 'Movie' : 'Profile'}</span>
+                <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const desktopDisplayItems = isExpanded
+    ? displayItems
+    : (displayItems.length > 5 ? displayItems.slice(0, 4) : displayItems);
+
+  return (
+    <div className={`w-full ${className}`}>
+      {/* Header Bar */}
+      <div className="flex items-center justify-between gap-3 mb-2 px-1">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Awards</span>
+
+          {/* Awards picker is hidden on mobile screens */}
+          <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/[0.04] p-0.5 border border-white/5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('all')}
+              className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-all ${
+                activeTab === 'all'
+                  ? 'bg-white/15 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              All ({totalCount})
+            </button>
+            {totalWins > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('wins')}
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold transition-all ${
+                  activeTab === 'wins'
+                    ? 'bg-amber-400/20 text-amber-300'
+                    : 'text-zinc-400 hover:text-amber-300'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[12px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  emoji_events
+                </span>
+                <span>Wins ({totalWins})</span>
+              </button>
+            )}
+            {totalNominations > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('noms')}
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold transition-all ${
+                  activeTab === 'noms'
+                    ? 'bg-white/15 text-zinc-200'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[12px] text-zinc-400" style={{ fontVariationSettings: "'FILL' 0" }}>
+                  emoji_events
+                </span>
+                <span>Nominations ({totalNominations})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Collapse toggle button in header (only shown when expanded) */}
+        {isExpanded && (
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1 rounded-full bg-white/5 hover:bg-white/10 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
+            onClick={() => setIsExpanded(false)}
+            className="hidden sm:inline-flex items-center gap-1 rounded-md bg-white/5 hover:bg-white/10 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
           >
-            <span>{isExpanded ? 'Hide' : 'View All'}</span>
-            <span className={`material-symbols-outlined text-[15px] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+            <span>Hide</span>
+            <span className="material-symbols-outlined text-[15px] rotate-180">
               expand_more
             </span>
           </button>
         )}
       </div>
 
-      {/* Collapsed view: Direct clean chips */}
-      {!isExpanded && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {wins.slice(0, 3).map((award, i) => {
-            const theme = getAwardTheme(award.type, false);
-            return (
-              <div
-                key={`win-${i}`}
-                className={`inline-flex items-center gap-1.5 rounded-xl ${theme.badgeBg} px-2.5 py-1 text-xs font-medium ${theme.labelColor} backdrop-blur-md`}
-              >
-                <span className={`material-symbols-outlined text-[14px] ${theme.trophyColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                  emoji_events
-                </span>
-                {award.year && (
-                  <span className="text-[10px] font-bold opacity-80">{award.year}</span>
-                )}
-                <span className="font-semibold text-white/90 truncate max-w-[260px]">
-                  {award.typeLabel}: {award.category}
-                </span>
-              </div>
-            );
-          })}
+      {/* Desktop View: 5 Columns with 5th card as distinct View More button when collapsed */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-5 gap-x-3 gap-y-8 pt-7 pb-2">
+          {desktopDisplayItems.map((item, index) => renderCard(item, index, true))}
 
-          {wins.length < 3 && nominations.slice(0, 3 - wins.length).map((nom, i) => {
-            const theme = getAwardTheme(nom.type, true);
-            return (
-              <div
-                key={`nom-${i}`}
-                className={`inline-flex items-center gap-1.5 rounded-xl ${theme.badgeBg} px-2.5 py-1 text-xs font-medium ${theme.labelColor} backdrop-blur-md`}
-              >
-                <span className="material-symbols-outlined text-[14px] text-zinc-500" style={{ fontVariationSettings: "'FILL' 0" }}>
-                  emoji_events
-                </span>
-                {nom.year && (
-                  <span className="text-[10px] font-bold text-zinc-400">{nom.year}</span>
-                )}
-                <span className="font-normal text-zinc-300 truncate max-w-[260px]">
-                  {nom.typeLabel}: {nom.category} (Nominated)
-                </span>
-              </div>
-            );
-          })}
-
-          {totalCount > 3 && (
+          {/* 5th slot: Distinct Action Card if > 5 awards and collapsed */}
+          {!isExpanded && displayItems.length > 5 && (
             <button
+              type="button"
               onClick={() => setIsExpanded(true)}
-              className="inline-flex items-center rounded-xl bg-white/5 hover:bg-white/10 px-2 py-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+              className="group relative w-full rounded-xl bg-gradient-to-b from-amber-500/10 via-zinc-950/90 to-zinc-950/90 border-2 border-dashed border-amber-400/40 hover:border-amber-400 hover:bg-amber-400/15 hover:shadow-[0_0_25px_rgba(251,191,36,0.25)] pt-7 pb-2.5 px-2 flex flex-col items-center text-center transition-all duration-300 cursor-pointer select-none"
             >
-              +{totalCount - 3} more
+              {/* Distinct Action Medallion Circle */}
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-dashed border-amber-400/80 bg-zinc-950 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-amber-400 group-hover:border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.25)]">
+                <span className="material-symbols-outlined text-[22px] text-amber-400 group-hover:text-black transition-colors font-bold">
+                  add
+                </span>
+              </div>
+
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 group-hover:text-amber-300 transition-colors mt-0.5 leading-tight">
+                +{displayItems.length - 4} MORE
+              </span>
+
+              <span className="text-[10px] font-bold text-zinc-400 mt-0.5 leading-tight">
+                AWARDS
+              </span>
+
+              <h4 className="text-xs sm:text-[13px] font-black text-white group-hover:text-amber-200 tracking-tight w-full truncate mt-0.5">
+                View All
+              </h4>
+
+              <p className="text-[11px] italic font-semibold text-zinc-400 group-hover:text-white transition-colors truncate w-full mt-0.5 px-0.5">
+                {displayItems.length} Total
+              </p>
             </button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Expanded view */}
-      {isExpanded && (
-        <div className="mt-3.5 space-y-3 pt-3 border-t border-white/5">
-          {/* Minimal Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1 rounded-xl bg-black/40 p-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('wins')}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                  activeTab === 'wins'
-                    ? 'bg-amber-400/20 text-amber-300'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[13px] text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  emoji_events
-                </span>
-                <span>Won ({wins.length})</span>
-              </button>
-              {nominations.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('noms')}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                    activeTab === 'noms'
-                      ? 'bg-white/15 text-white'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[13px] text-zinc-400" style={{ fontVariationSettings: "'FILL' 0" }}>
-                    emoji_events
-                  </span>
-                  <span>Nominated ({nominations.length})</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                  activeTab === 'all'
-                    ? 'bg-white/15 text-white'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                All ({totalCount})
-              </button>
-            </div>
-
-            {uniqueTypes.length > 1 && (
-              <div className="flex flex-wrap gap-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedType('all')}
-                  className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold transition-all ${
-                    selectedType === 'all' ? 'bg-white/20 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  All
-                </button>
-                {uniqueTypes.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setSelectedType(t)}
-                    className={`capitalize rounded-lg px-2 py-0.5 text-[11px] font-semibold transition-all ${
-                      selectedType === t ? 'bg-white/20 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    {t.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* List of Awards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-            {displayItems.map((item, index) => {
-              const theme = getAwardTheme(item.type, item.isNomination);
-              return (
-                <div
-                  key={`${item.id}-${index}`}
-                  className="flex items-start gap-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] p-2.5 transition-colors"
-                >
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${theme.badgeBg}`}>
-                    <span
-                      className={`material-symbols-outlined text-[16px] ${theme.trophyColor}`}
-                      style={{ fontVariationSettings: `'FILL' ${theme.fill}` }}
-                    >
-                      emoji_events
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.labelColor}`}>
-                        {item.isNomination ? 'Nominated' : 'Winner'} • {item.typeLabel}
-                      </span>
-                      {item.year && (
-                        <span className="text-[10px] font-bold text-zinc-400 bg-white/5 px-1.5 py-0.2 rounded">
-                          {item.year}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-white mt-0.5 leading-snug">
-                      {item.category}
-                    </p>
-                    {item.forWork && (
-                      <p className="text-[11px] text-zinc-400 mt-0.5 italic truncate">
-                        for &ldquo;{item.forWork}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Mobile View: Smooth Horizontal Swiping Row */}
+      <div
+        ref={scrollContainerRef}
+        className="flex sm:hidden gap-2.5 overflow-x-auto pb-3 pt-8 px-2 scroll-smooth hide-scrollbar snap-x touch-pan-x"
+      >
+        {displayItems.map((item, index) => renderCard(item, index, false))}
+      </div>
     </div>
   );
 }
+
