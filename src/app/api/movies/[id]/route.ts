@@ -1,5 +1,6 @@
 import { TMDB_BASE_URL } from '@/lib/config';
 import { NextResponse } from 'next/server';
+import { getAwardsForImdbId } from '@/lib/awards';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     const credits = await creditsRes.json();
     const providers = await providersRes.json();
 
-    const cast = credits.cast?.slice(0, 5).map((c: any) => ({
+    const cast = credits.cast?.slice(0, 15).map((c: any) => ({
       id: c.id,
       name: c.name,
       character: c.character,
@@ -28,6 +29,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     })) || [];
     
     const usProviders = providers.results?.US?.flatrate || providers.results?.US?.rent || providers.results?.US?.buy || [];
+
+    const awards = await getAwardsForImdbId(details.imdb_id);
 
     return NextResponse.json({
       id: details.id,
@@ -42,7 +45,15 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       genres: details.genres || [],
       runtime: details.runtime,
       cast,
-      providers: usProviders
+      providers: usProviders,
+      imdb_id: details.imdb_id || null,
+      awards,
+      // Backward compatibility
+      oscars: {
+        hasWonOscar: awards.oscarWins > 0,
+        count: awards.oscarWins,
+        awards: awards.wins.filter(w => w.type === 'oscar')
+      }
     });
   } catch (error) {
     console.error('[MOVIE_DETAILS_GET]', error);

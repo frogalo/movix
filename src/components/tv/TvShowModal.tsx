@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { TrailerPlayer } from "@/components/common/TrailerPlayer";
+import { MovieCastList } from "@/components/movie/MovieCastList";
+import { ActorModal } from "@/components/person/ActorModal";
 import { TvShowModalHero } from "./TvShowModalHero";
 import { TvShowStatsAndActions } from "./TvShowStatsAndActions";
 import { TvShowSeasonSelector } from "./TvShowSeasonSelector";
@@ -39,6 +41,9 @@ type SeasonInfo = {
   poster_path: string | null;
 };
 
+import { TrophyShowcase } from "@/components/common/TrophyShowcase";
+import { AwardsSummary } from "@/lib/awards";
+
 type TvShowDetails = {
   id: number;
   name: string;
@@ -52,6 +57,7 @@ type TvShowDetails = {
   genres: Genre[];
   seasons: SeasonInfo[];
   cast: CastMember[];
+  awards?: AwardsSummary;
 };
 
 type TvShowData = {
@@ -83,6 +89,7 @@ export function TvShowModal({
 }: TvShowModalProps) {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
+  const [activeShowId, setActiveShowId] = useState<string | number | null>(showId);
   const [data, setData] = useState<TvShowData | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number | 'auto'>('auto');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,12 +97,17 @@ export function TvShowModal({
   const [isWatchlistAction, setIsWatchlistAction] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [hasScrolledToEpisode, setHasScrolledToEpisode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setActiveShowId(showId);
+  }, [showId]);
 
   useEffect(() => {
     if (isOpen && initialSeason !== null && initialSeason !== undefined) {
@@ -125,9 +137,9 @@ export function TvShowModal({
   }, [isOpen, isLoading, data, highlightEpisode, hasScrolledToEpisode]);
 
   useEffect(() => {
-    if (showId && isOpen) {
+    if (activeShowId && isOpen) {
       setIsLoading(true);
-      fetch(`/api/tv/${showId}?season=${selectedSeason}`)
+      fetch(`/api/tv/${activeShowId}?season=${selectedSeason}`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch");
           return res.json();
@@ -145,27 +157,29 @@ export function TvShowModal({
       setSelectedSeason('auto');
       setShowTrailer(false);
     }
-  }, [showId, isOpen, selectedSeason]);
+  }, [activeShowId, isOpen, selectedSeason]);
 
-  if (!showId || !data) return null;
+  if (!activeShowId) return null;
 
-  const { details, dbShow, season } = data;
+  const details = data?.details;
+  const dbShow = data?.dbShow;
+  const season = data?.season;
   const isFavorite = dbShow?.isFavorite || false;
   const isInLibrary = !!dbShow;
 
-  const isCurrentSeasonAllWatched = season?.episodes?.length > 0 && season.episodes.every((ep) => ep.isWatched);
-  const totalRegularEpisodes = details.seasons
+  const isCurrentSeasonAllWatched = season?.episodes ? season.episodes.length > 0 && season.episodes.every((ep) => ep.isWatched) : false;
+  const totalRegularEpisodes = details?.seasons
     ?.filter((s) => s.season_number > 0)
     ?.reduce((sum, s) => sum + s.episode_count, 0) || 0;
   const isEntireSeriesAllWatched = dbShow ? dbShow.totalEpisodesTracked >= totalRegularEpisodes : false;
 
   const handleLibraryToggle = async () => {
-    if (isWatchlistAction) return;
+    if (!data?.details || isWatchlistAction) return;
     setIsWatchlistAction(true);
     
     try {
       if (isInLibrary) {
-        await fetch(`/api/tv?tvdbId=${dbShow?.tvdbId || details.id}`, {
+        await fetch(`/api/tv?tvdbId=${dbShow?.tvdbId || data.details.id}`, {
           method: "DELETE",
         });
       } else {
@@ -173,9 +187,9 @@ export function TvShowModal({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tvdbId: details.id,
-            tmdbId: details.id,
-            title: details.name,
+            tvdbId: data.details.id,
+            tmdbId: data.details.id,
+            title: data.details.name,
             status: "watching",
           }),
         });
@@ -194,7 +208,7 @@ export function TvShowModal({
   };
 
   const handleFavoriteToggle = async () => {
-    if (!isInLibrary || isWatchlistAction) return;
+    if (!isInLibrary || !dbShow || !data?.details || isWatchlistAction) return;
     setIsWatchlistAction(true);
 
     try {
@@ -203,8 +217,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow.tvdbId,
-          tmdbId: details.id,
-          title: details.name,
+          tmdbId: data.details.id,
+          title: data.details.name,
           isFavorite: !isFavorite,
         }),
       });
@@ -222,6 +236,7 @@ export function TvShowModal({
   };
 
   const handleEpisodeWatchToggle = async (episode: EpisodeProgress) => {
+    if (!data?.details) return;
     const actionKey = `watch-${episode.episode_number}`;
     if (isActionInProgress) return;
     setIsActionInProgress(actionKey);
@@ -232,8 +247,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow?.tvdbId || null,
-          tmdbId: details.id,
-          showTitle: details.name,
+          tmdbId: data.details.id,
+          showTitle: data.details.name,
           seasonNumber: selectedSeason,
           episodeNumber: episode.episode_number,
           isWatched: !episode.isWatched,
@@ -264,6 +279,7 @@ export function TvShowModal({
   };
 
   const handleEpisodeVote = async (episode: EpisodeProgress, emotionValue: string | null) => {
+    if (!data?.details) return;
     const actionKey = `vote-${episode.episode_number}`;
     if (isActionInProgress) return;
     setIsActionInProgress(actionKey);
@@ -274,8 +290,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow?.tvdbId || null,
-          tmdbId: details.id,
-          showTitle: details.name,
+          tmdbId: data.details.id,
+          showTitle: data.details.name,
           seasonNumber: selectedSeason,
           episodeNumber: episode.episode_number,
           vote: emotionValue,
@@ -304,6 +320,7 @@ export function TvShowModal({
   };
 
   const handleEpisodeRating = async (episode: EpisodeProgress, ratingValue: number | null) => {
+    if (!data?.details) return;
     const actionKey = `rating-${episode.episode_number}`;
     if (isActionInProgress) return;
     setIsActionInProgress(actionKey);
@@ -314,8 +331,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow?.tvdbId || null,
-          tmdbId: details.id,
-          showTitle: details.name,
+          tmdbId: data.details.id,
+          showTitle: data.details.name,
           seasonNumber: selectedSeason,
           episodeNumber: episode.episode_number,
           rating: ratingValue,
@@ -344,7 +361,7 @@ export function TvShowModal({
   };
 
   const handleSeriesVote = async (emotionValue: string | null) => {
-    if (!isInLibrary || isActionInProgress) return;
+    if (!isInLibrary || !dbShow || !data?.details || isActionInProgress) return;
     setIsActionInProgress("series-vote");
 
     try {
@@ -353,8 +370,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow.tvdbId,
-          tmdbId: details.id,
-          title: details.name,
+          tmdbId: data.details.id,
+          title: data.details.name,
           vote: emotionValue,
         }),
       });
@@ -369,7 +386,6 @@ export function TvShowModal({
           },
         };
       });
-      if (onLibraryUpdate) onLibraryUpdate();
     } catch (e) {
       console.error(e);
     } finally {
@@ -378,7 +394,7 @@ export function TvShowModal({
   };
 
   const handleSeriesRating = async (ratingValue: number | null) => {
-    if (!isInLibrary || isActionInProgress) return;
+    if (!isInLibrary || !dbShow || !data?.details || isActionInProgress) return;
     setIsActionInProgress("series-rating");
 
     try {
@@ -387,8 +403,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow.tvdbId,
-          tmdbId: details.id,
-          title: details.name,
+          tmdbId: data.details.id,
+          title: data.details.name,
           rating: ratingValue,
         }),
       });
@@ -403,7 +419,6 @@ export function TvShowModal({
           },
         };
       });
-      if (onLibraryUpdate) onLibraryUpdate();
     } catch (e) {
       console.error(e);
     } finally {
@@ -412,10 +427,10 @@ export function TvShowModal({
   };
 
   const handleMarkSeasonWatched = async () => {
-    if (isActionInProgress) return;
-    setIsActionInProgress("mark-season-watched");
+    if (!data?.details || isActionInProgress) return;
+    setIsActionInProgress(`mark-season-${selectedSeason}`);
 
-    const currentSeasonMeta = details.seasons.find((s) => s.season_number === selectedSeason);
+    const currentSeasonMeta = data.details.seasons.find((s) => s.season_number === selectedSeason);
     const episodeCount = currentSeasonMeta ? currentSeasonMeta.episode_count : 0;
 
     try {
@@ -424,8 +439,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow?.tvdbId || null,
-          tmdbId: details.id,
-          showTitle: details.name,
+          tmdbId: data.details.id,
+          showTitle: data.details.name,
           seasonNumber: selectedSeason,
           episodeCount: episodeCount,
           isWatched: true,
@@ -445,10 +460,10 @@ export function TvShowModal({
   };
 
   const handleMarkSeriesWatched = async () => {
-    if (isActionInProgress) return;
+    if (!data?.details || isActionInProgress) return;
     setIsActionInProgress("mark-series-watched");
 
-    const seasonsData = details.seasons
+    const seasonsData = data.details.seasons
       .filter((s) => s.season_number > 0)
       .map((s) => ({
         seasonNumber: s.season_number,
@@ -461,8 +476,8 @@ export function TvShowModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tvdbId: dbShow?.tvdbId || null,
-          tmdbId: details.id,
-          showTitle: details.name,
+          tmdbId: data.details.id,
+          showTitle: data.details.name,
           seasonsData,
           isWatched: true,
           bulk: "series",
@@ -512,104 +527,162 @@ export function TvShowModal({
                 <span className="material-symbols-outlined">close</span>
               </button>
 
-              <div className="flex-1 overflow-y-auto md:overflow-hidden h-full flex flex-col md:flex-row">
-                <TvShowModalHero
-                name={details.name}
-                backdropPath={details.backdrop_path}
-                posterPath={details.poster_path}
-                genres={details.genres}
-              />
-
-              {/* Content & Episodes column */}
-              <div 
-                className="flex flex-1 flex-col overflow-visible md:overflow-y-auto bg-background p-4 md:p-8"
-                onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-              >
-                {/* Top Section wrapper for mobile auto-hide */}
-                <div className={`transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mb-6 md:pointer-events-auto overflow-hidden shrink-0 ${
-                  hideTop 
-                    ? 'max-h-0 opacity-0 mb-0 pointer-events-none' 
-                    : 'max-h-[300px] opacity-100 mb-4 pointer-events-auto'
-                }`}>
-                  <TvShowStatsAndActions
-                    firstAirDate={details.first_air_date}
-                    numberOfSeasons={details.number_of_seasons}
-                    numberOfEpisodes={details.number_of_episodes}
-                    voteAverage={details.vote_average}
-                    isLoggedIn={isLoggedIn}
-                    isInLibrary={isInLibrary}
-                    isFavorite={isFavorite}
-                    isWatchlistAction={isWatchlistAction}
-                    isActionInProgress={isActionInProgress !== null}
-                    dbShowVote={dbShow?.vote || null}
-                    dbShowRating={dbShow?.rating || null}
-                    handleLibraryToggle={handleLibraryToggle}
-                    handleFavoriteToggle={handleFavoriteToggle}
-                    handleSeriesVote={handleSeriesVote}
-                    handleSeriesRating={handleSeriesRating}
+              {(!data || isLoading || !details) ? (
+                <div className="flex-1 overflow-y-auto md:overflow-hidden h-full flex flex-col md:flex-row animate-pulse">
+                  <div className="relative w-full shrink-0 overflow-hidden h-[300px] md:h-auto md:w-[44%] bg-zinc-900 flex flex-col justify-end p-6">
+                    <div className="space-y-2 md:hidden">
+                      <div className="h-5 w-24 rounded-full bg-zinc-800" />
+                      <div className="h-8 w-48 rounded-xl bg-zinc-800" />
+                      <div className="h-4 w-32 rounded-md bg-zinc-800/80" />
+                    </div>
+                  </div>
+                  <div className="flex-1 p-5 md:p-8 space-y-6 overflow-y-auto">
+                    <div className="hidden md:block space-y-3">
+                      <div className="h-6 w-28 rounded-full bg-zinc-800" />
+                      <div className="h-9 w-64 rounded-xl bg-zinc-800" />
+                      <div className="h-4 w-44 rounded-md bg-zinc-800/70" />
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="h-16 w-16 rounded-2xl bg-zinc-800" />
+                      <div className="h-16 flex-1 rounded-2xl bg-zinc-800/60" />
+                    </div>
+                    <div className="rounded-2xl bg-zinc-900/40 p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-16 rounded bg-amber-400/20" />
+                          <div className="h-4 w-24 rounded bg-zinc-800" />
+                        </div>
+                        <div className="h-5 w-16 rounded-full bg-zinc-800/60" />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="h-6 w-32 rounded-xl bg-zinc-800/60" />
+                        <div className="h-6 w-24 rounded-xl bg-zinc-800/60" />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="h-8 w-48 rounded-xl bg-zinc-800/70" />
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="h-20 rounded-xl bg-zinc-900/80" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto md:overflow-hidden h-full flex flex-col md:flex-row">
+                  <TvShowModalHero
+                    name={details.name}
+                    backdropPath={details.backdrop_path}
+                    posterPath={details.poster_path}
+                    genres={details.genres}
                   />
 
-                  {/* Show Synopsis */}
-                  <div className="mb-3 max-h-16 md:max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
-                    {details.overview || "No synopsis available."}
-                  </div>
-
-                  {/* Watch Trailer Button */}
-                  <div className="mb-4">
-                    <button
-                      onClick={() => setShowTrailer(true)}
-                      className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] touch-manipulation"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">movie</span>
-                      Watch Trailer
-                    </button>
-                  </div>
-                </div>
-
-                <TvShowSeasonSelector
-                  seasons={details.seasons}
-                  selectedSeason={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                  isLoggedIn={isLoggedIn}
-                  dbShow={dbShow}
-                  isCurrentSeasonAllWatched={isCurrentSeasonAllWatched}
-                  isEntireSeriesAllWatched={isEntireSeriesAllWatched}
-                  isActionInProgress={isActionInProgress !== null}
-                  handleMarkSeasonWatched={handleMarkSeasonWatched}
-                  handleMarkSeriesWatched={handleMarkSeriesWatched}
-                />
-
-                {/* Episodes List */}
-                <div className="flex-1 overflow-y-visible md:overflow-y-auto pr-1 pb-24 md:pb-0 space-y-3 md:space-y-4 hide-scrollbar overscroll-none">
-                  {isLoading ? (
-                    <div className="flex h-32 items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-yellow-400"></div>
-                    </div>
-                  ) : season.episodes.length === 0 ? (
-                    <div className="py-8 text-center text-zinc-500">No episodes found.</div>
-                  ) : (
-                    season.episodes.map((ep) => (
-                      <TvShowEpisodeCard
-                        key={ep.id}
-                        ep={ep}
+                  <div 
+                    className="flex flex-1 flex-col overflow-visible md:overflow-y-auto bg-background p-4 md:p-8"
+                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                  >
+                    <div className={`transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mb-6 md:pointer-events-auto overflow-hidden shrink-0 ${
+                      hideTop 
+                        ? 'max-h-0 opacity-0 mb-0 pointer-events-none' 
+                        : 'max-h-[300px] opacity-100 mb-4 pointer-events-auto'
+                    }`}>
+                      <TvShowStatsAndActions
+                        firstAirDate={details.first_air_date}
+                        numberOfSeasons={details.number_of_seasons}
+                        numberOfEpisodes={details.number_of_episodes}
+                        voteAverage={details.vote_average}
                         isLoggedIn={isLoggedIn}
+                        isInLibrary={isInLibrary}
+                        isFavorite={isFavorite}
+                        isWatchlistAction={isWatchlistAction}
                         isActionInProgress={isActionInProgress !== null}
-                        isHighlighted={ep.episode_number === Number(highlightEpisode)}
-                        handleEpisodeWatchToggle={handleEpisodeWatchToggle}
-                        handleEpisodeVote={handleEpisodeVote}
-                        handleEpisodeRating={handleEpisodeRating}
+                        dbShowVote={dbShow?.vote || null}
+                        dbShowRating={dbShow?.rating || null}
+                        handleLibraryToggle={handleLibraryToggle}
+                        handleFavoriteToggle={handleFavoriteToggle}
+                        handleSeriesVote={handleSeriesVote}
+                        handleSeriesRating={handleSeriesRating}
                       />
-                    ))
-                  )}
+
+                      <div className="mb-3 max-h-16 md:max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
+                        {details.overview || "No synopsis available."}
+                      </div>
+
+                      <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => setShowTrailer(true)}
+                          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] touch-manipulation"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">movie</span>
+                          Watch Trailer
+                        </button>
+                        {details.awards?.hasAwards && (
+                          <TrophyShowcase awards={details.awards} variant="badge-only" />
+                        )}
+                      </div>
+
+                      {details.awards?.hasAwards && (
+                        <div className="mb-5">
+                          <TrophyShowcase awards={details.awards} />
+                        </div>
+                      )}
+
+                      {details.cast && details.cast.length > 0 && (
+                        <div className="mb-4">
+                          <MovieCastList
+                            isLoading={isLoading}
+                            cast={details.cast}
+                            onSelectActor={(actorId) => setSelectedActorId(actorId)}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <TvShowSeasonSelector
+                      seasons={details.seasons}
+                      selectedSeason={selectedSeason}
+                      setSelectedSeason={setSelectedSeason}
+                      isLoggedIn={isLoggedIn}
+                      dbShow={dbShow || null}
+                      isCurrentSeasonAllWatched={isCurrentSeasonAllWatched}
+                      isEntireSeriesAllWatched={isEntireSeriesAllWatched}
+                      isActionInProgress={isActionInProgress !== null}
+                      handleMarkSeasonWatched={handleMarkSeasonWatched}
+                      handleMarkSeriesWatched={handleMarkSeriesWatched}
+                    />
+
+                    <div className="flex-1 overflow-y-visible md:overflow-y-auto pr-1 pb-24 md:pb-0 space-y-3 md:space-y-4 hide-scrollbar overscroll-none">
+                      {isLoading ? (
+                        <div className="flex h-32 items-center justify-center">
+                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-yellow-400"></div>
+                        </div>
+                      ) : !season || season.episodes.length === 0 ? (
+                        <div className="py-8 text-center text-zinc-500">No episodes found.</div>
+                      ) : (
+                        season.episodes.map((ep) => (
+                          <TvShowEpisodeCard
+                            key={ep.id}
+                            ep={ep}
+                            isLoggedIn={isLoggedIn}
+                            isActionInProgress={isActionInProgress !== null}
+                            isHighlighted={ep.episode_number === Number(highlightEpisode)}
+                            handleEpisodeWatchToggle={handleEpisodeWatchToggle}
+                            handleEpisodeVote={handleEpisodeVote}
+                            handleEpisodeRating={handleEpisodeRating}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </motion.div>
+              )}
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {isOpen && data && (
+      {isOpen && data && details && (
         <TrailerPlayer
           movieId={details.id}
           movieTitle={details.name}
@@ -618,6 +691,16 @@ export function TvShowModal({
           mediaType="tv"
         />
       )}
+
+      <ActorModal
+        personId={selectedActorId}
+        isOpen={!!selectedActorId}
+        onClose={() => setSelectedActorId(null)}
+        onSelectTvShow={(newShowId) => {
+          setActiveShowId(newShowId);
+          setSelectedActorId(null);
+        }}
+      />
     </>,
     document.body
   );

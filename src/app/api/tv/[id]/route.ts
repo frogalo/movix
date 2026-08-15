@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { fetchWithCache } from '@/lib/tmdbCache';
+import { getAwardsForImdbId } from '@/lib/awards';
 
 export async function GET(
   request: Request,
@@ -99,11 +100,13 @@ export async function GET(
       }
     }
 
-    const [details, creditsData] = await Promise.all([
+    const [details, creditsData, externalIdsData] = await Promise.all([
       fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600),
-      fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600)
+      fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600),
+      fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/external_ids?api_key=${apiKey}`, 3600),
     ]);
     const credits = creditsData || { cast: [] };
+    const awards = await getAwardsForImdbId(externalIdsData?.imdb_id || details?.external_ids?.imdb_id);
 
     // Helper to resolve auto season
     const resolveSeason = (detailsObj: any, showRecord: any) => {
@@ -140,7 +143,9 @@ export async function GET(
           const retryDetails = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}?api_key=${apiKey}`, 3600);
           if (retryDetails) {
             const retryCredits = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600) || { cast: [] };
-            return await buildResponse(dbShow, retryDetails, retryCredits, resolveSeason(retryDetails, dbShow), tmdbId!, apiKey);
+            const retryExternalIds = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/external_ids?api_key=${apiKey}`, 3600);
+            const retryAwards = await getAwardsForImdbId(retryExternalIds?.imdb_id || retryDetails?.external_ids?.imdb_id);
+            return await buildResponse(dbShow, retryDetails, retryCredits, resolveSeason(retryDetails, dbShow), tmdbId!, apiKey, retryAwards);
           }
         }
       }
@@ -160,7 +165,7 @@ export async function GET(
       });
     }
 
-    return await buildResponse(dbShow, details, credits, resolveSeason(details, dbShow), tmdbId!, apiKey);
+    return await buildResponse(dbShow, details, credits, resolveSeason(details, dbShow), tmdbId!, apiKey, awards);
 
   } catch (error) {
     console.error('[TV_DETAILS_GET]', error);
@@ -174,9 +179,10 @@ async function buildResponse(
   credits: any,
   seasonNumber: number,
   tmdbId: number,
-  apiKey: string
+  apiKey: string,
+  awards?: any
 ) {
-  const cast = credits.cast?.slice(0, 5).map((c: any) => ({
+  const cast = credits.cast?.slice(0, 15).map((c: any) => ({
     id: c.id,
     name: c.name,
     character: c.character,
@@ -243,6 +249,13 @@ async function buildResponse(
       seasons: details.seasons || [],
       genres: details.genres || [],
       cast,
+      awards: awards || {
+        hasAwards: false,
+        totalWins: 0,
+        totalNominations: 0,
+        wins: [],
+        nominations: [],
+      },
     },
     season: {
       seasonNumber,

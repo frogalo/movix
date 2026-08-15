@@ -9,6 +9,7 @@ import { ImageWithLoader } from '@/components/common/ImageWithLoader';
 import { MovieModal } from '@/components/movie/MovieModal';
 import { TvShowModal } from '@/components/tv/TvShowModal';
 import { GameModal } from '@/components/game/GameModal';
+import { ActorModal } from '@/components/person/ActorModal';
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
@@ -31,6 +32,8 @@ export function SearchOverlay() {
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [isGameModalOpen, setIsGameModalOpen] = useState(false);
+  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
+  const [isActorModalOpen, setIsActorModalOpen] = useState(false);
   const [userLibrary, setUserLibrary] = useState<{ watchlists: any[]; ratings: any[] }>({ watchlists: [], ratings: [] });
 
   const fetchLibrary = () => {
@@ -62,7 +65,11 @@ export function SearchOverlay() {
     fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`)
       .then(res => res.json())
       .then(data => {
-        const validResults = data.results?.filter((r: any) => r.media_type !== 'person' && (r.poster_path || r.backdrop_path)) || [];
+        const validResults = data.results?.filter((r: any) => 
+          (r.media_type === 'person' && (r.profile_path || r.name)) || 
+          r.poster_path || 
+          r.backdrop_path
+        ) || [];
         setResults(validResults.slice(0, 8));
       })
       .catch(console.error)
@@ -114,26 +121,32 @@ export function SearchOverlay() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const handleSelect = (movie: any) => {
+  const handleSelect = (item: any) => {
     setShowDropdown(false);
     setMobileOpen(false);
     setQuery('');
 
-    if (movie.media_type === 'game') {
-      setSelectedGameId(movie.id);
+    if (item.media_type === 'person') {
+      setSelectedActorId(item.id);
+      setIsActorModalOpen(true);
+      return;
+    }
+
+    if (item.media_type === 'game') {
+      setSelectedGameId(item.id);
       setIsGameModalOpen(true);
       return;
     }
 
-    const isTv = movie.media_type === 'tv' || (!movie.title && !!movie.name);
+    const isTv = item.media_type === 'tv' || (!item.title && !!item.name);
     if (isTv) {
-      setSelectedTvShowId(movie.id);
+      setSelectedTvShowId(item.id);
       setIsTvModalOpen(true);
     } else {
       const formattedMovie = {
-        ...movie,
-        title: movie.title || movie.name,
-        release_date: movie.release_date || movie.first_air_date,
+        ...item,
+        title: item.title || item.name,
+        release_date: item.release_date || item.first_air_date,
       };
       setSelectedMovie(formattedMovie);
       setIsMovieModalOpen(true);
@@ -148,7 +161,7 @@ export function SearchOverlay() {
 
   const ResultsList = () => {
     const getPosterUrl = (result: any) => {
-      const path = result.poster_path || result.backdrop_path;
+      const path = result.poster_path || result.backdrop_path || result.profile_path;
       if (!path) return 'https://via.placeholder.com/92x138?text=No+Image';
       if (path.startsWith('http')) return path;
       return `https://image.tmdb.org/t/p/w92${path}`;
@@ -157,6 +170,7 @@ export function SearchOverlay() {
     const getMediaLabel = (result: any) => {
       if (result.media_type === 'game') return 'Game';
       if (result.media_type === 'tv') return 'TV Series';
+      if (result.media_type === 'person') return result.known_for_department || 'Actor';
       return 'Movie';
     };
 
@@ -169,7 +183,7 @@ export function SearchOverlay() {
         ) : (
           results.map((result) => (
             <div 
-              key={result.id}
+              key={`${result.media_type || 'item'}-${result.id}`}
               onClick={() => handleSelect(result)}
               className="px-4 py-3 flex items-center gap-3 hover:bg-white/10 active:bg-white/15 cursor-pointer transition-colors touch-manipulation"
             >
@@ -336,6 +350,24 @@ export function SearchOverlay() {
         }}
         onSelectTvShowId={(id) => {
           setSelectedTvShowId(id);
+          setIsTvModalOpen(true);
+        }}
+      />
+      <ActorModal
+        personId={selectedActorId}
+        isOpen={isActorModalOpen}
+        onClose={() => {
+          setIsActorModalOpen(false);
+          setSelectedActorId(null);
+        }}
+        onSelectMovie={(movie) => {
+          setIsActorModalOpen(false);
+          setSelectedMovie(movie);
+          setIsMovieModalOpen(true);
+        }}
+        onSelectTvShow={(showId) => {
+          setIsActorModalOpen(false);
+          setSelectedTvShowId(showId);
           setIsTvModalOpen(true);
         }}
       />

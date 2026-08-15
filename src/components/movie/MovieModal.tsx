@@ -10,12 +10,16 @@ import { TrailerPlayer } from "@/components/common/TrailerPlayer";
 import { VotingComponent } from "@/components/common/VotingComponent";
 import { MovieCastList, CastMember } from "@/components/movie/MovieCastList";
 import { MovieProvidersList, StreamingProvider } from "@/components/movie/MovieProvidersList";
+import { ActorModal } from "@/components/person/ActorModal";
 
 type LibraryEntry = {
   movieId: number;
   rating?: number | null;
   vote?: string | null;
 };
+
+import { TrophyShowcase } from "@/components/common/TrophyShowcase";
+import { AwardsSummary } from "@/lib/awards";
 
 type Genre = {
   id: number;
@@ -35,6 +39,7 @@ type MovieExtraInfo = {
   runtime?: number | null;
   cast?: CastMember[];
   providers?: StreamingProvider[];
+  awards?: AwardsSummary;
 };
 
 interface MovieModalProps {
@@ -54,11 +59,13 @@ export function MovieModal({
 }: MovieModalProps) {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
+  const [currentMovie, setCurrentMovie] = useState<Movie | null>(movie);
   const [isAdding, setIsAdding] = useState(false);
   const [isRating, setIsRating] = useState(false);
   const [extraInfo, setExtraInfo] = useState<MovieExtraInfo | null>(null);
   const [isLoadingExtra, setIsLoadingExtra] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -66,9 +73,13 @@ export function MovieModal({
   }, []);
 
   useEffect(() => {
-    if (movie && isOpen) {
+    setCurrentMovie(movie);
+  }, [movie]);
+
+  useEffect(() => {
+    if (currentMovie && isOpen) {
       setIsLoadingExtra(true);
-      fetch(`/api/movies/${movie.id}`)
+      fetch(`/api/movies/${currentMovie.id}`)
         .then((res) => res.json())
         .then((data: MovieExtraInfo) => setExtraInfo(data))
         .catch(console.error)
@@ -76,7 +87,7 @@ export function MovieModal({
     } else {
       setExtraInfo(null);
     }
-  }, [movie, isOpen]);
+  }, [currentMovie, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -91,11 +102,11 @@ export function MovieModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  if (!movie) return null;
+  if (!currentMovie) return null;
 
-  const movieTitle = movie.title || extraInfo?.title || "Movie";
-  const backdropPath = movie.backdrop_path || extraInfo?.backdrop_path || null;
-  const posterPath = movie.poster_path || extraInfo?.poster_path || null;
+  const movieTitle = currentMovie.title || extraInfo?.title || "Movie";
+  const backdropPath = currentMovie.backdrop_path || extraInfo?.backdrop_path || null;
+  const posterPath = currentMovie.poster_path || extraInfo?.poster_path || null;
 
   const heroImage = backdropPath
     ? `https://image.tmdb.org/t/p/original${backdropPath}`
@@ -107,23 +118,23 @@ export function MovieModal({
     ? `https://image.tmdb.org/t/p/w500${posterPath}`
     : heroImage;
 
-  const isInWatchlist = userLibrary.watchlists.some((entry) => entry.movieId === movie.id);
-  const userRating = userLibrary.ratings.find((entry) => entry.movieId === movie.id)?.rating;
-  const userVote = userLibrary.ratings.find((entry) => entry.movieId === movie.id)?.vote;
+  const isInWatchlist = userLibrary.watchlists.some((entry) => entry.movieId === currentMovie.id);
+  const userRating = userLibrary.ratings.find((entry) => entry.movieId === currentMovie.id)?.rating;
+  const userVote = userLibrary.ratings.find((entry) => entry.movieId === currentMovie.id)?.vote;
 
-  const releaseDate = movie.release_date || extraInfo?.release_date;
+  const releaseDate = currentMovie.release_date || extraInfo?.release_date;
   const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : "N/A";
   const runtimeLabel = extraInfo?.runtime
     ? `${Math.floor(extraInfo.runtime / 60)}h ${extraInfo.runtime % 60}m`
     : null;
   const genreNames = extraInfo?.genres?.slice(0, 3).map((genre) => genre.name) ?? [];
 
-  const voteAverage = movie.vote_average ?? extraInfo?.vote_average;
-  const voteCount = movie.vote_count ?? extraInfo?.vote_count ?? 0;
+  const voteAverage = currentMovie.vote_average ?? extraInfo?.vote_average;
+  const voteCount = currentMovie.vote_count ?? extraInfo?.vote_count ?? 0;
   const score = voteAverage !== undefined && voteAverage !== null ? voteAverage.toFixed(1) : "NR";
   const scoreDashOffset = 176 - (Math.min(voteAverage ?? 0, 10) / 10) * 176;
 
-  const overview = movie.overview || extraInfo?.overview || (isLoadingExtra ? "Loading overview..." : "No overview available.");
+  const overview = currentMovie.overview || extraInfo?.overview || (isLoadingExtra ? "Loading overview..." : "No overview available.");
 
   const handleWatchlist = async () => {
     setIsAdding(true);
@@ -132,7 +143,7 @@ export function MovieModal({
       await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ movieId: movie.id }),
+        body: JSON.stringify({ movieId: currentMovie.id }),
       });
       onLibraryUpdate();
     } catch (error) {
@@ -147,12 +158,12 @@ export function MovieModal({
 
     try {
       if (ratingValue === null && !userVote) {
-        await fetch(`/api/rating?movieId=${movie.id}`, { method: "DELETE" });
+        await fetch(`/api/rating?movieId=${currentMovie.id}`, { method: "DELETE" });
       } else {
         await fetch("/api/rating", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ movieId: movie.id, rating: ratingValue }),
+          body: JSON.stringify({ movieId: currentMovie.id, rating: ratingValue }),
         });
       }
       onLibraryUpdate();
@@ -168,12 +179,12 @@ export function MovieModal({
 
     try {
       if (voteValue === null && !userRating) {
-        await fetch(`/api/rating?movieId=${movie.id}`, { method: "DELETE" });
+        await fetch(`/api/rating?movieId=${currentMovie.id}`, { method: "DELETE" });
       } else {
         await fetch("/api/rating", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ movieId: movie.id, vote: voteValue }),
+          body: JSON.stringify({ movieId: currentMovie.id, vote: voteValue }),
         });
       }
       onLibraryUpdate();
@@ -252,8 +263,13 @@ export function MovieModal({
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,204,0,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(87,27,193,0.3),transparent_45%)]" />
 
                 <div className="absolute bottom-6 left-6 right-6 md:hidden">
-                  <div className="mb-3 inline-flex rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-yellow-300">
-                    Trending Pick
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <div className="inline-flex rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-yellow-300">
+                      Trending Pick
+                    </div>
+                    {extraInfo?.awards?.hasAwards && (
+                      <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
+                    )}
                   </div>
                   <h2 className="font-headline-lg text-3xl text-white drop-shadow-lg">
                     {movieTitle}
@@ -275,6 +291,9 @@ export function MovieModal({
                     <span className="text-label-sm uppercase tracking-[0.24em] text-zinc-500">
                       TMDB Spotlight
                     </span>
+                    {extraInfo?.awards?.hasAwards && (
+                      <TrophyShowcase awards={extraInfo.awards} variant="badge-only" />
+                    )}
                   </div>
 
                   <h2 className="font-display-xl text-5xl leading-none tracking-[-0.04em] text-white lg:text-6xl">
@@ -308,6 +327,10 @@ export function MovieModal({
                 </header>
 
                 <div className="mt-0 flex flex-col gap-8 md:mt-8">
+                  {/* Modern Borderless Smart Trophy Showcase */}
+                  {extraInfo?.awards?.hasAwards && (
+                    <TrophyShowcase awards={extraInfo.awards} />
+                  )}
                   <div className="flex flex-wrap items-center gap-5">
                     <div className="flex items-center gap-5 rounded-[1.5rem] border border-white/5 bg-surface-container-low/60 p-4">
                       <div className="relative flex h-16 w-16 items-center justify-center">
@@ -384,7 +407,11 @@ export function MovieModal({
                     </p>
                   </div>
 
-                  <MovieCastList isLoading={isLoadingExtra} cast={extraInfo?.cast} />
+                  <MovieCastList
+                    isLoading={isLoadingExtra}
+                    cast={extraInfo?.cast}
+                    onSelectActor={(actorId) => setSelectedActorId(actorId)}
+                  />
 
                   <MovieProvidersList isLoading={isLoadingExtra} providers={extraInfo?.providers} />
 
@@ -419,14 +446,24 @@ export function MovieModal({
         ) : null}
       </AnimatePresence>
 
-      {movie && (
+      {currentMovie && (
         <TrailerPlayer
-          movieId={movie.id}
+          movieId={currentMovie.id}
           movieTitle={movieTitle}
           isOpen={showTrailer}
           onClose={() => setShowTrailer(false)}
         />
       )}
+
+      <ActorModal
+        personId={selectedActorId}
+        isOpen={!!selectedActorId}
+        onClose={() => setSelectedActorId(null)}
+        onSelectMovie={(selectedMov) => {
+          setCurrentMovie(selectedMov);
+          setSelectedActorId(null);
+        }}
+      />
     </>,
     document.body
   );

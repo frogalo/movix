@@ -12,9 +12,10 @@ export type CastMember = {
 interface MovieCastListProps {
   isLoading: boolean;
   cast?: CastMember[];
+  onSelectActor?: (actorId: number) => void;
 }
 
-export function MovieCastList({ isLoading, cast }: MovieCastListProps) {
+export function MovieCastList({ isLoading, cast, onSelectActor }: MovieCastListProps) {
   return (
     <div className="space-y-4">
       <h3 className="font-headline-md text-xl text-white">Top Cast</h3>
@@ -31,8 +32,15 @@ export function MovieCastList({ isLoading, cast }: MovieCastListProps) {
       ) : cast?.length ? (
         <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
           {cast.map((actor) => (
-            <div key={actor.id} className="group flex shrink-0 flex-col items-center gap-2">
-              <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-transparent transition group-hover:border-primary-container">
+            <div
+              key={actor.id}
+              onClick={() => onSelectActor && onSelectActor(actor.id)}
+              className={`group flex shrink-0 flex-col items-center gap-2 ${
+                onSelectActor ? "cursor-pointer" : ""
+              }`}
+              title={onSelectActor ? `View ${actor.name}` : undefined}
+            >
+              <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-transparent transition-all duration-200 group-hover:border-primary-container group-hover:scale-105 shadow-md">
                 {actor.profile_path ? (
                   <ImageWithLoader
                     src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
@@ -47,7 +55,7 @@ export function MovieCastList({ isLoading, cast }: MovieCastListProps) {
                 )}
               </div>
               <div className="text-center">
-                <p className="w-20 truncate text-[11px] font-semibold text-white">
+                <p className="w-20 truncate text-[11px] font-semibold text-white group-hover:text-primary-container transition-colors">
                   {actor.name}
                 </p>
                 <p className="w-20 truncate text-[10px] text-zinc-500">

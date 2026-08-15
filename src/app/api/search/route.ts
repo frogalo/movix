@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     // Ensure TMDB results have correct media_type and merge
     const formattedTmdb = tmdbResults.map((r: any) => ({
       ...r,
-      media_type: r.media_type || (r.title ? 'movie' : 'tv'),
+      media_type: r.media_type || (r.known_for ? 'person' : r.title ? 'movie' : 'tv'),
     }));
 
     const combinedResults = [...formattedTmdb, ...igdbResults];
