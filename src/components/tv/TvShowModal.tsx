@@ -95,7 +95,6 @@ export function TvShowModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isActionInProgress, setIsActionInProgress] = useState<string | null>(null);
   const [isWatchlistAction, setIsWatchlistAction] = useState(false);
-  const [scrollTop, setScrollTop] = useState(0);
   const [showTrailer, setShowTrailer] = useState(false);
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -495,8 +494,6 @@ export function TvShowModal({
     }
   };
 
-  const hideTop = scrollTop > 10;
-
   if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
@@ -576,17 +573,11 @@ export function TvShowModal({
                     backdropPath={details.backdrop_path}
                     posterPath={details.poster_path}
                     genres={details.genres}
+                    awards={details.awards}
                   />
 
-                  <div 
-                    className="flex flex-1 flex-col overflow-visible md:overflow-y-auto bg-background p-4 md:p-8"
-                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-                  >
-                    <div className={`transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mb-6 md:pointer-events-auto overflow-hidden shrink-0 ${
-                      hideTop 
-                        ? 'max-h-0 opacity-0 mb-0 pointer-events-none' 
-                        : 'max-h-[300px] opacity-100 mb-4 pointer-events-auto'
-                    }`}>
+                  <div className="flex flex-1 flex-col overflow-y-auto bg-background p-4 md:p-8">
+                    <div className="space-y-4 md:space-y-6 mb-6">
                       <TvShowStatsAndActions
                         firstAirDate={details.first_air_date}
                         numberOfSeasons={details.number_of_seasons}
@@ -605,11 +596,11 @@ export function TvShowModal({
                         handleSeriesRating={handleSeriesRating}
                       />
 
-                      <div className="mb-3 max-h-16 md:max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
+                      <div className="max-h-24 overflow-y-auto text-xs md:text-sm leading-relaxed text-zinc-400">
                         {details.overview || "No synopsis available."}
                       </div>
 
-                      <div className="mb-4 flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <button
                           onClick={() => setShowTrailer(true)}
                           className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] touch-manipulation"
@@ -622,8 +613,9 @@ export function TvShowModal({
                         )}
                       </div>
 
+                      {/* Full Awards Showcase Section */}
                       {details.awards?.hasAwards && (
-                        <div className="mb-5">
+                        <div className="pt-1 pb-2">
                           <TrophyShowcase
                             awards={details.awards}
                             title={details.name}
@@ -656,7 +648,7 @@ export function TvShowModal({
                       )}
 
                       {details.cast && details.cast.length > 0 && (
-                        <div className="mb-4">
+                        <div>
                           <MovieCastList
                             isLoading={isLoading}
                             cast={details.cast}

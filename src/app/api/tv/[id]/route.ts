@@ -106,7 +106,10 @@ export async function GET(
       fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/external_ids?api_key=${apiKey}`, 3600),
     ]);
     const credits = creditsData || { cast: [] };
-    const awards = await getAwardsForImdbId(externalIdsData?.imdb_id || details?.external_ids?.imdb_id);
+    const awards = await getAwardsForImdbId(
+      externalIdsData?.imdb_id || details?.external_ids?.imdb_id,
+      externalIdsData?.wikidata_id || details?.external_ids?.wikidata_id
+    );
 
     // Helper to resolve auto season
     const resolveSeason = (detailsObj: any, showRecord: any) => {
@@ -144,7 +147,10 @@ export async function GET(
           if (retryDetails) {
             const retryCredits = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/credits?api_key=${apiKey}`, 3600) || { cast: [] };
             const retryExternalIds = await fetchWithCache(`${TMDB_BASE_URL}/tv/${tmdbId}/external_ids?api_key=${apiKey}`, 3600);
-            const retryAwards = await getAwardsForImdbId(retryExternalIds?.imdb_id || retryDetails?.external_ids?.imdb_id);
+            const retryAwards = await getAwardsForImdbId(
+              retryExternalIds?.imdb_id || retryDetails?.external_ids?.imdb_id,
+              retryExternalIds?.wikidata_id || retryDetails?.external_ids?.wikidata_id
+            );
             return await buildResponse(dbShow, retryDetails, retryCredits, resolveSeason(retryDetails, dbShow), tmdbId!, apiKey, retryAwards);
           }
         }

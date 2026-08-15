@@ -58,6 +58,7 @@ function classifyAward(awardName: string): { type: AwardType; typeLabel: string;
       .replace(/^Primetime Emmy Award for /i, '')
       .replace(/^Daytime Emmy Award for /i, '')
       .replace(/^International Emmy Award for /i, '')
+      .replace(/^Creative Arts Emmy Award for /i, '')
       .replace(/^Emmy Award for /i, '')
       .replace(/^Emmy /i, '')
       .trim();
@@ -68,10 +69,17 @@ function classifyAward(awardName: string): { type: AwardType; typeLabel: string;
       .replace(/^Golden Globe Award for /i, '')
       .replace(/^Golden Globe /i, '')
       .trim();
-  } else if (lower.includes('bafta')) {
+  } else if (lower.includes('bafta') || lower.includes('british academy')) {
     type = 'bafta';
     typeLabel = 'BAFTA';
     cleanCategory = awardName
+      .replace(/^British Academy Television Award for /i, '')
+      .replace(/^British Academy Film Award for /i, '')
+      .replace(/^British Academy Television Awards for /i, '')
+      .replace(/^British Academy Film Awards for /i, '')
+      .replace(/^British Academy Award for /i, '')
+      .replace(/^British Academy /i, '')
+      .replace(/^BAFTA Television Award for /i, '')
       .replace(/^BAFTA Award for /i, '')
       .replace(/^BAFTA /i, '')
       .trim();
@@ -94,7 +102,10 @@ function classifyAward(awardName: string): { type: AwardType; typeLabel: string;
   return { type, typeLabel, cleanCategory };
 }
 
-export async function getAwardsForImdbId(imdbId: string | null | undefined): Promise<AwardsSummary> {
+export async function getAwardsForImdbId(
+  imdbId: string | null | undefined,
+  wikidataId?: string | null | undefined
+): Promise<AwardsSummary> {
   const emptyResult: AwardsSummary = {
     hasAwards: false,
     totalWins: 0,
@@ -113,28 +124,34 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
     nominations: [],
   };
 
-  if (!imdbId) return emptyResult;
+  const cacheKey = wikidataId || imdbId;
+  if (!cacheKey) return emptyResult;
 
   const now = Date.now();
-  const cached = awardsMemoryCache.get(imdbId);
+  const cached = awardsMemoryCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.data;
   }
 
   try {
-    const searchUrl = `https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(imdbId)}&format=json`;
-    const res = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Movix/1.0 (https://movix.app; contact@movix.app)',
-      },
-    });
+    let entityId = wikidataId || (imdbId && /^Q\d+$/.test(imdbId) ? imdbId : null);
 
-    if (!res.ok) return emptyResult;
+    if (!entityId && imdbId) {
+      const searchUrl = `https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(imdbId)}&format=json`;
+      const res = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'Movix/1.0 (https://movix.app; contact@movix.app)',
+        },
+      });
 
-    const data = await res.json();
-    const entityId = data.query?.search?.[0]?.title;
+      if (!res.ok) return emptyResult;
+
+      const data = await res.json();
+      entityId = data.query?.search?.[0]?.title;
+    }
+
     if (!entityId) {
-      awardsMemoryCache.set(imdbId, { data: emptyResult, expiresAt: now + 7 * 86400 * 1000 });
+      awardsMemoryCache.set(cacheKey, { data: emptyResult, expiresAt: now + 7 * 86400 * 1000 });
       return emptyResult;
     }
 
@@ -192,7 +209,7 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
     const allRaw = [...parsedWins, ...parsedNoms];
 
     if (allRaw.length === 0) {
-      awardsMemoryCache.set(imdbId, { data: emptyResult, expiresAt: now + 7 * 86400 * 1000 });
+      awardsMemoryCache.set(cacheKey, { data: emptyResult, expiresAt: now + 7 * 86400 * 1000 });
       return emptyResult;
     }
 
@@ -306,10 +323,10 @@ export async function getAwardsForImdbId(imdbId: string | null | undefined): Pro
       nominations,
     };
 
-    awardsMemoryCache.set(imdbId, { data: result, expiresAt: now + 7 * 86400 * 1000 });
+    awardsMemoryCache.set(cacheKey, { data: result, expiresAt: now + 7 * 86400 * 1000 });
     return result;
   } catch (error) {
-    console.error(`[AWARDS_FETCH_ERROR] for IMDb ID ${imdbId}:`, error);
+    console.error(`[AWARDS_FETCH_ERROR] for IMDb/Wikidata ID ${cacheKey}:`, error);
     return emptyResult;
   }
 }

@@ -1,6 +1,6 @@
-"use client";
-
 import { ImageWithLoader } from "@/components/common/ImageWithLoader";
+import { TrophyShowcase } from "@/components/common/TrophyShowcase";
+import { AwardsSummary } from "@/lib/awards";
 
 type Genre = {
   id: number;
@@ -12,6 +12,7 @@ interface TvShowModalHeroProps {
   backdropPath: string | null;
   posterPath: string | null;
   genres: Genre[];
+  awards?: AwardsSummary;
 }
 
 export function TvShowModalHero({
@@ -19,6 +20,7 @@ export function TvShowModalHero({
   backdropPath,
   posterPath,
   genres,
+  awards,
 }: TvShowModalHeroProps) {
   const heroImage = backdropPath
     ? `https://image.tmdb.org/t/p/original${backdropPath}`
@@ -46,9 +48,14 @@ export function TvShowModalHero({
 
       {/* Poster info overlays */}
       <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-3 md:bottom-8 md:left-8">
-        <span className="self-start rounded-full bg-yellow-400 px-3 py-1 font-label-sm text-[10px] font-black uppercase tracking-wider text-black">
-          TV Series
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="self-start rounded-full bg-yellow-400 px-3 py-1 font-label-sm text-[10px] font-black uppercase tracking-wider text-black">
+            TV Series
+          </span>
+          {awards?.hasAwards && (
+            <TrophyShowcase awards={awards} variant="badge-only" />
+          )}
+        </div>
         <h3 className="font-headline-lg text-[28px] font-bold leading-tight text-white drop-shadow-xl md:text-[36px]">
           {name}
         </h3>
