@@ -9,10 +9,12 @@ export function SideNavBar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const landingHref = session?.user ? "/library" : "/";
-  const homeHref = session?.user ? "/trending" : "/";
+  const homeHref = "/trending";
 
   const isActive = (path: string) =>
-    path === "/" ? pathname === path : pathname.startsWith(path);
+    path === "/trending"
+      ? (pathname === "/" || pathname === "/trending")
+      : (path === "/" ? pathname === path : pathname.startsWith(path));
 
   const baseLinkStyle = "flex items-center gap-4 px-4 py-3 hover:bg-white/5 hover:backdrop-blur-md hover:translate-x-1 transition-all duration-200 rounded-lg";
   const activeLinkStyle = "bg-yellow-400/10 text-yellow-400 rounded-lg";

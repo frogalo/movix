@@ -191,15 +191,24 @@ function HomeContent() {
   };
 
   const handleMovieSelect = (movie: any) => {
-    if (movie.media_type === 'tv') {
-      setSelectedTvShow(movie);
-      setIsTvModalOpen(true);
-    } else if (movie.media_type === 'game') {
-      setSelectedGameId(movie.id);
-      setIsGameModalOpen(true);
-    } else {
+    if (!showAll) {
+      // When Big Hero is still open, selecting any movie/show updates the hero and does NOT open modals
       setSelectedMovie(movie);
-      if (showAll) {
+      if (movie.media_type === 'tv' || (!movie.title && !!movie.name)) {
+        setSelectedTvShow(movie);
+      } else if (movie.media_type === 'game') {
+        setSelectedGameId(movie.id);
+      }
+    } else {
+      // When hero is closed (in grid view), clicking cards opens the appropriate modal
+      if (movie.media_type === 'tv' || (!movie.title && !!movie.name)) {
+        setSelectedTvShow(movie);
+        setIsTvModalOpen(true);
+      } else if (movie.media_type === 'game') {
+        setSelectedGameId(movie.id);
+        setIsGameModalOpen(true);
+      } else {
+        setSelectedMovie(movie);
         setIsModalOpen(true);
       }
     }
@@ -267,21 +276,31 @@ function HomeContent() {
       onScroll={handleScroll}
       className={`md:ml-64 w-full md:w-[calc(100%-16rem)] relative ${showAll ? 'h-screen overflow-y-auto pb-24 md:pb-8' : 'h-screen overflow-hidden'}`}
     >
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {!showAll && (
           <motion.div
             key="hero-section"
-            initial={{ opacity: 1, height: "auto" }}
-            exit={isMobile ? undefined : { opacity: 0, height: 0 }}
-            transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeInOut" }}
-            className="w-full origin-top overflow-hidden hidden md:block"
+            initial={isMobile ? undefined : { height: 0, opacity: 0 }}
+            animate={isMobile ? undefined : { height: "auto", opacity: 1 }}
+            exit={isMobile ? undefined : { height: 0, opacity: 0 }}
+            transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-full origin-top overflow-hidden hidden md:block shrink-0"
           >
-            <HeroSection movie={selectedMovie} userLibrary={userLibrary} onLibraryUpdate={fetchLibrary} onTvShowClick={handleMovieSelect} />
+            <HeroSection 
+              movie={selectedMovie} 
+              userLibrary={userLibrary} 
+              onLibraryUpdate={fetchLibrary} 
+              onTvShowClick={(tv) => {
+                setSelectedTvShow(tv);
+                setIsTvModalOpen(true);
+              }} 
+            />
           </motion.div>
         )}
       </AnimatePresence>
       <TrendingMoviesCarousel 
         movies={filteredMovies} 
+        selectedMovieId={selectedMovie?.id}
         onMovieSelect={handleMovieSelect} 
         isGrid={showAll}
         onToggleGrid={() => setShowAll(!showAll)}

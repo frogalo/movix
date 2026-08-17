@@ -9,7 +9,7 @@ import { Clapperboard, Star, BookmarkCheck, Users, User } from "lucide-react";
 export function BottomNavBar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const homeHref = session?.user ? "/trending" : "/";
+  const homeHref = "/trending";
   const [showTopRated, setShowTopRated] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,9 @@ export function BottomNavBar() {
   }, []);
 
   const isActive = (path: string) =>
-    path === "/" ? pathname === path : pathname.startsWith(path);
+    path === "/trending"
+      ? (pathname === "/" || pathname === "/trending")
+      : (path === "/" ? pathname === path : pathname.startsWith(path));
 
   const linkClass = (path: string) =>
     `flex flex-col items-center justify-center gap-0.5 ${showTopRated ? 'w-14' : 'w-16'} h-12 rounded-xl transition-colors touch-manipulation ${
