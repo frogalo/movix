@@ -1,5 +1,6 @@
 import { TMDB_BASE_URL } from '@/lib/config';
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithCache } from "@/lib/tmdbCache";
 
 const GENRE_MAP: { [key: string]: number[] } = {
   "Action": [28, 10759],
@@ -46,17 +47,14 @@ export async function GET(req: NextRequest) {
             const movieUrl = `${TMDB_BASE_URL}/movie/top_rated?api_key=${apiKey}&page=${page}`;
             const tvUrl = `${TMDB_BASE_URL}/tv/top_rated?api_key=${apiKey}&page=${page}`;
 
-            const [movieRes, tvRes] = await Promise.all([
-                fetch(movieUrl, { next: { revalidate: 3600 } }),
-                fetch(tvUrl, { next: { revalidate: 3600 } })
+            const [movieData, tvData] = await Promise.all([
+                fetchWithCache(movieUrl, 3600),
+                fetchWithCache(tvUrl, 3600)
             ]);
 
-            if (!movieRes.ok || !tvRes.ok) {
+            if (!movieData || !tvData) {
                 return new NextResponse('Error fetching from TMDB', { status: 502 });
             }
-
-            const movieData = await movieRes.json();
-            const tvData = await tvRes.json();
 
             const movies = (movieData.results || []).map((item: any) => ({ ...item, media_type: 'movie' }));
             const tvShows = (tvData.results || []).map((item: any) => ({ ...item, media_type: 'tv' }));
@@ -130,17 +128,14 @@ export async function GET(req: NextRequest) {
             tvUrl += `&first_air_date.lte=${maxDate}`;
         }
 
-        const [movieRes, tvRes] = await Promise.all([
-            fetch(movieUrl, { next: { revalidate: 3600 } }),
-            fetch(tvUrl, { next: { revalidate: 3600 } })
+        const [movieData, tvData] = await Promise.all([
+            fetchWithCache(movieUrl, 3600),
+            fetchWithCache(tvUrl, 3600)
         ]);
 
-        if (!movieRes.ok || !tvRes.ok) {
+        if (!movieData || !tvData) {
             return new NextResponse('Error discovering from TMDB', { status: 502 });
         }
-
-        const movieData = await movieRes.json();
-        const tvData = await tvRes.json();
 
         const movies = (movieData.results || []).map((item: any) => ({ ...item, media_type: 'movie' }));
         const tvShows = (tvData.results || []).map((item: any) => ({ ...item, media_type: 'tv' }));

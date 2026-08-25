@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { HeroSection } from "@/components/home/HeroSection";
 import { TrendingMoviesCarousel, Movie } from "@/components/home/TrendingMoviesCarousel";
 import { MovieModal } from "@/components/movie/MovieModal";
@@ -16,7 +17,12 @@ type ApiResponse = {
   total_results: number;
 };
 
+const GUEST_MAX_PAGE = 2; // Limit non-logged in users to 2 pages (~40 items)
+
 function HomeContent() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
+
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -35,6 +41,8 @@ function HomeContent() {
   const mainRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const isGuestLimitReached = !isLoggedIn && page >= GUEST_MAX_PAGE;
 
   useEffect(() => {
     const savedM = localStorage.getItem('filter_show_movies');
@@ -117,6 +125,7 @@ function HomeContent() {
   }, [searchParams, router]);
 
   const fetchLibrary = () => {
+    if (!isLoggedIn) return;
     fetch('/api/user/library')
       .then(res => res.json())
       .then(data => setUserLibrary(data || { watchlists: [], ratings: [] }))
@@ -129,7 +138,9 @@ function HomeContent() {
       setIsMobile(true);
     }
 
-    fetchLibrary();
+    if (isLoggedIn) {
+      fetchLibrary();
+    }
 
     fetch(`/api/trending?page=1`)
       .then((res) => {
@@ -143,47 +154,31 @@ function HomeContent() {
         }
       })
       .catch(console.error);
-  }, []);
+  }, [isLoggedIn]);
 
   const loadMoreMovies = () => {
-    if (isLoadingMore) return;
+    if (isLoadingMore || isGuestLimitReached) return;
     setIsLoadingMore(true);
     const nextPage = page + 1;
     fetch(`/api/trending?page=${nextPage}`)
       .then((res) => res.json())
       .then((data: ApiResponse) => {
-        setMovies(prev => {
-          const newMovies = data.results.filter(newM => !prev.some(m => m.id === newM.id));
-          return [...prev, ...newMovies];
-        });
-        setPage(nextPage);
+        if (data?.results?.length) {
+          setMovies(prev => {
+            const newMovies = data.results.filter(newM => !prev.some(m => m.id === newM.id));
+            return [...prev, ...newMovies];
+          });
+          setPage(nextPage);
+        }
+      })
+      .catch(console.error)
+      .finally(() => {
         setIsLoadingMore(false);
       });
   };
 
-  useEffect(() => {
-    if (showAll && page === 1) {
-      // Fetch multiple pages initially to ensure ultrawide monitors have enough content to trigger scroll
-      setIsLoadingMore(true);
-      Promise.all([
-        fetch(`/api/trending?page=2`).then(res => res.json()),
-        fetch(`/api/trending?page=3`).then(res => res.json()),
-        fetch(`/api/trending?page=4`).then(res => res.json())
-      ]).then(([data2, data3, data4]) => {
-        setMovies(prev => {
-          const allNew = [...data2.results, ...data3.results, ...data4.results];
-          const uniqueNew = allNew.filter((m, i, self) => self.findIndex(s => s.id === m.id) === i);
-          const newMovies = uniqueNew.filter(newM => !prev.some(m => m.id === newM.id));
-          return [...prev, ...newMovies];
-        });
-        setPage(4);
-        setIsLoadingMore(false);
-      });
-    }
-  }, [showAll, page]);
-
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    if (!showAll) return;
+    if (!showAll || isGuestLimitReached) return;
     const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
     if (scrollHeight - scrollTop <= clientHeight + 150) {
       loadMoreMovies();
@@ -316,6 +311,27 @@ function HomeContent() {
       {isLoadingMore && showAll && (
         <div className="flex justify-center pb-8">
           <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-yellow-400 animate-spin"></div>
+        </div>
+      )}
+
+      {isGuestLimitReached && showAll && (
+        <div className="mx-4 md:mx-12 my-8 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-black/60 p-6 md:p-10 text-center backdrop-blur-xl shadow-2xl">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-400/15 text-yellow-400 mb-3 border border-yellow-400/25 shadow-lg">
+            <span className="material-symbols-outlined text-2xl">lock_open</span>
+          </div>
+          <h3 className="text-lg md:text-xl font-bold text-white mb-2">Want to explore more?</h3>
+          <p className="text-xs md:text-sm text-zinc-400 max-w-md mx-auto mb-5">
+            You&apos;ve reached the preview limit. Sign in or create a free account to unlock unlimited browsing, track episodes, and save your watchlist.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <a
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-6 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-300 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+            >
+              <span className="material-symbols-outlined text-[16px]">login</span>
+              Sign In / Register
+            </a>
+          </div>
         </div>
       )}
       <MovieModal 
